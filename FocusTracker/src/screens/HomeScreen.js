@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, AppState } from 'react-native';
+import { addSession } from '../utils/db';
 import { Ionicons } from '@expo/vector-icons';
 
 // Sabitler
-const WORK_TIME = 25 * 60; 
+const WORK_TIME = 10; 
 const CATEGORIES = ["Ders Çalışma", "Kodlama", "Proje", "Kitap Okuma"];
 
 export default function HomeScreen() {
@@ -58,7 +59,16 @@ export default function HomeScreen() {
     } else if (timeLeft === 0) {
       setIsActive(false);
       clearInterval(interval);
-      Alert.alert("Tebrikler!", "Odaklanma seansını başarıyla tamamladın.");
+      
+      // ESKİ KOD BUYDU (Bunu Siliyoruz):
+      // addSession(selectedCategory, WORK_TIME, distractionCount, () => {
+      //    console.log("Seans veritabanına kaydedildi.");
+      // });
+
+      // YENİ KOD BU OLMALI:
+      addSession(selectedCategory, WORK_TIME, distractionCount);
+      
+      Alert.alert("Tebrikler!", "Odaklanma seansını başarıyla tamamladın ve kaydedildi.");
     }
 
     return () => clearInterval(interval);
