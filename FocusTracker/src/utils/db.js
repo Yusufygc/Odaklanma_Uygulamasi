@@ -1,6 +1,5 @@
 import * as SQLite from 'expo-sqlite';
 
-// Veritabanı bağlantısını sağlayan yardımcı fonksiyon
 let dbInstance = null;
 
 const getDB = async () => {
@@ -10,10 +9,12 @@ const getDB = async () => {
   return dbInstance;
 };
 
-// 1. Tabloyu Oluştur
+// 1. Tabloları Oluştur ve Varsayılan Verileri Ekle
 export const initDB = async () => {
   try {
     const db = await getDB();
+    
+    // Oturumlar Tablosu
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS sessions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,40 +24,91 @@ export const initDB = async () => {
         distractions INTEGER
       );
     `);
-    console.log('Tablo başarıyla oluşturuldu.');
+
+    // Kategoriler Tablosu (YENİ)
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE
+      );
+    `);
+
+    // Varsayılan Kategorileri Kontrol Et ve Ekle
+    const result = await db.getAllAsync('SELECT * FROM categories');
+    if (result.length === 0) {
+      await db.execAsync(`
+        INSERT INTO categories (name) VALUES 
+        ('Ders Çalışma'), 
+        ('Kodlama'), 
+        ('Kitap Okuma'), 
+        ('Spor');
+      `);
+    }
+
+    console.log('Veritabanı ve tablolar hazır.');
   } catch (error) {
-    console.log('Tablo oluşturma hatası:', error);
+    console.log('Tablo hatası:', error);
   }
 };
 
-// 2. Yeni Seans Ekle
+// --- KATEGORİ İŞLEMLERİ (CRUD) ---
+
+// Kategorileri Getir
+export const getCategories = async () => {
+  try {
+    const db = await getDB();
+    return await db.getAllAsync('SELECT * FROM categories ORDER BY id DESC');
+  } catch (error) {
+    console.log('Kategori çekme hatası:', error);
+    return [];
+  }
+};
+
+// Kategori Ekle
+export const addCategory = async (name) => {
+  try {
+    const db = await getDB();
+    await db.runAsync('INSERT INTO categories (name) VALUES (?)', name);
+    return true;
+  } catch (error) {
+    console.log('Kategori ekleme hatası:', error);
+    return false;
+  }
+};
+
+// Kategori Sil
+export const deleteCategory = async (id) => {
+  try {
+    const db = await getDB();
+    await db.runAsync('DELETE FROM categories WHERE id = ?', id);
+    return true;
+  } catch (error) {
+    console.log('Kategori silme hatası:', error);
+    return false;
+  }
+};
+
+// --- SEANS İŞLEMLERİ ---
+
 export const addSession = async (category, duration, distractions) => {
   try {
     const db = await getDB();
     const date = new Date().toISOString();
-    
-    // runAsync: Veri ekleme/silme işlemleri için kullanılır
     const result = await db.runAsync(
       'INSERT INTO sessions (category, date, duration, distractions) VALUES (?, ?, ?, ?)',
       category, date, duration, distractions
     );
-    
-    console.log("Kayıt başarılı, Son ID:", result.lastInsertRowId);
-    return result.lastInsertRowId;
+    console.log("Kayıt başarılı, ID:", result.lastInsertRowId);
   } catch (error) {
     console.log('Veri ekleme hatası:', error);
   }
 };
 
-// 3. Tüm Verileri Çek
 export const fetchSessions = async () => {
   try {
     const db = await getDB();
-    // getAllAsync: Tüm satırları dizi olarak çeker
-    const allRows = await db.getAllAsync('SELECT * FROM sessions ORDER BY id DESC');
-    return allRows;
+    return await db.getAllAsync('SELECT * FROM sessions ORDER BY id DESC');
   } catch (error) {
-    console.log('Veri çekme hatası:', error);
     return [];
   }
 };
