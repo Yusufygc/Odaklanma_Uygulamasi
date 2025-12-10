@@ -1,8 +1,8 @@
 // ==========================================
-// screens/HomeScreen.js - FINAL FIX (Ref Proxy Pattern)
+// screens/HomeScreen.js - FINAL & COMPLETE
 // ==========================================
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { STRINGS } from '../constants/strings';
 
@@ -20,6 +20,7 @@ import { CategorySelector } from '../components/category/CategorySelector';
 import { DistractionBadge } from '../components/distraction/DistractionBadge';
 import { ResumeSessionModal } from '../components/distraction/ResumeSessionModal';
 import { CategoryManagementModal } from '../components/category/CategoryManagementModal';
+import { TimeAdjustmentModal } from '../components/timer/TimeAdjustmentModal';
 
 // Services & Utils
 import { SessionService } from '../services/SessionService';
@@ -27,26 +28,33 @@ import { NotificationService } from '../services/NotificationService';
 import { SESSION_TYPES, TIMER_DURATIONS, VIBRATION_PATTERNS } from '../utils/constants';
 
 export default function HomeScreen() {
-  // State Management
+  // ---------------- STATE YÖNETİMİ ----------------
   const [sessionType, setSessionType] = useState(SESSION_TYPES.WORK);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [distractionCount, setDistractionCount] = useState(0);
   const [completedPomodoros, setCompletedPomodoros] = useState(0);
+  
+  // Modal Kontrolleri
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showTimeModal, setShowTimeModal] = useState(false); // ⏱️ Yeni Süre Modalı
+
+  // Durum Kontrolleri
   const [wasActiveBeforeBackground, setWasActiveBeforeBackground] = useState(false);
-  const [showPomodoroBadge, setShowPomodoroBadge] = useState(false); // ✨ YENİ
+  const [showPomodoroBadge, setShowPomodoroBadge] = useState(false); // 🏅 Başarı Rozeti
+
+  // Ayarlar
+  const [workMinutes, setWorkMinutes] = useState(25); // ⚙️ Varsayılan Çalışma Süresi
 
   // Custom Hooks
   const { categories, loadCategories, addNewCategory, removeCategory } = useCategories();
   
-  // 🔗 1. ADIM: Fonksiyonu tutacak bir Ref oluştur (Köprü)
+  // ---------------- REF PROXY (Döngüsel Bağımlılık Çözümü) ----------------
   const onSessionCompleteRef = useRef(null);
 
-  // 🔗 2. ADIM: useTimer'a bu Ref'i çağıran bir 'Proxy' fonksiyon ver
-  // Böylece timer tanımlanırken handleSessionComplete'in hazır olmasına gerek kalmaz.
+  // Timer Hook Başlatma
   const timer = useTimer(
-    SessionService.getSessionDuration(sessionType),
+    sessionType === SESSION_TYPES.WORK ? workMinutes * 60 : SessionService.getSessionDuration(sessionType),
     () => {
       console.log("🔗 Timer bitti, Ref üzerinden fonksiyon çağrılıyor...");
       if (onSessionCompleteRef.current) {
@@ -57,7 +65,9 @@ export default function HomeScreen() {
     }
   );
 
-  // Lifecycle - Load categories on mount
+  // ---------------- LIFECYCLE & APP STATE ----------------
+
+  // Ekran odaklandığında kategorileri yükle
   useFocusEffect(
     useCallback(() => {
       loadCategories().then((cats) => {
@@ -68,36 +78,49 @@ export default function HomeScreen() {
     }, [])
   );
 
-  // AppState Management
+  // Uygulama Arka Plana Geçince / Öne Gelince
   useAppState(
-    () => handleAppBackground(),
-    () => handleAppForeground()
+    // onBackground
+    () => {
+      if (timer.isActive && sessionType === SESSION_TYPES.WORK) {
+        setWasActiveBeforeBackground(true);
+        timer.pause();
+        setDistractionCount(prev => prev + 1);
+        NotificationService.vibrate(VIBRATION_PATTERNS.DISTRACTION);
+      }
+    },
+    // onForeground
+    () => {
+      if (wasActiveBeforeBackground && !timer.isActive && timer.timeLeft > 0) {
+        setShowResumeModal(true);
+        setWasActiveBeforeBackground(false);
+      }
+    }
   );
 
-  const handleAppBackground = () => {
-    if (timer.isActive && sessionType === SESSION_TYPES.WORK) {
-      setWasActiveBeforeBackground(true);
-      timer.pause();
-      setDistractionCount(prev => prev + 1);
-      NotificationService.vibrate(VIBRATION_PATTERNS.DISTRACTION);
+  // ---------------- HANDLERS (İş Mantığı) ----------------
+
+  // Süre Güncelleme (Modal'dan gelen)
+  const handleUpdateDuration = (minutes) => {
+    setWorkMinutes(minutes);
+    setShowTimeModal(false);
+    
+    // Eğer şu an "Odaklan" modundaysak ve sayaç çalışmıyorsa, süreyi hemen güncelle
+    if (!timer.isActive && sessionType === SESSION_TYPES.WORK) {
+      timer.reset(minutes * 60);
+      NotificationService.showSuccess(`Süre ${minutes} dk olarak ayarlandı`);
     }
   };
 
-  const handleAppForeground = () => {
-    if (wasActiveBeforeBackground && !timer.isActive && timer.timeLeft > 0) {
-      setShowResumeModal(true);
-      setWasActiveBeforeBackground(false);
-    }
-  };
-
-  // 📝 3. ADIM: Timer fonksiyonlarını tanımla (Artık 'timer' değişkeni tanımlı olduğu için kullanabiliriz)
+  // Timer Sıfırlama
   const handleResetTimer = useCallback(() => {
     setSessionType(SESSION_TYPES.WORK);
-    timer.reset(TIMER_DURATIONS.WORK);
+    timer.reset(workMinutes * 60); // Dinamik süreyi kullan
     setDistractionCount(0);
     setWasActiveBeforeBackground(false);
-  }, [timer]); // timer bağımlılığı eklendi
+  }, [timer, workMinutes]);
 
+  // Mola Başlatma
   const handleStartBreak = useCallback((pomodoroCount) => {
     const breakType = SessionService.calculateNextSessionType(pomodoroCount);
     setSessionType(breakType);
@@ -106,7 +129,7 @@ export default function HomeScreen() {
     timer.start();
   }, [timer]);
 
-  // 📝 4. ADIM: Ana bitiş fonksiyonunu tanımla
+  // SEANS BİTİŞİ (Ana Fonksiyon)
   const handleSessionComplete = useCallback(async () => {
     console.log("🏁 HomeScreen: handleSessionComplete çalıştı!");
 
@@ -119,10 +142,12 @@ export default function HomeScreen() {
         return;
       }
 
-      console.log("💾 Kayıt başlatılıyor...");
+      console.log(`💾 Kayıt Başlıyor: Kategori=${selectedCategory}, Süre=${workMinutes}dk`);
+      
+      // Veritabanına kaydet
       const success = await SessionService.saveSession(
         selectedCategory,
-        TIMER_DURATIONS.WORK,
+        workMinutes * 60, // Dinamik süreyi saniye olarak gönder
         distractionCount
       );
 
@@ -130,38 +155,39 @@ export default function HomeScreen() {
         console.log("✅ Kayıt başarılı.");
         const newCount = completedPomodoros + 1;
         setCompletedPomodoros(newCount);
-
-        // ✨ YENİ: Rozeti göster ve 4 saniye sonra gizle
+        
+        // ✨ Rozeti Göster ve 4sn sonra Gizle
         setShowPomodoroBadge(true);
         setTimeout(() => {
           setShowPomodoroBadge(false);
-        }, 4000); // 4000 ms = 4 saniye
+        }, 4000);
         
+        // Kullanıcıya Bildir
         NotificationService.showSessionComplete(
           newCount,
-          () => handleStartBreak(newCount),
-          () => handleResetTimer()
+          () => handleStartBreak(newCount), // Molaya geç
+          () => handleResetTimer()          // Veya bitir
         );
       }
     } else {
+      // Mola Bitişi
       NotificationService.showAlert(
-        '⏰ Mola Bitti!',
-        'Tekrar çalışmaya hazır mısın?',
+        STRINGS.home.alerts.breakOver,
+        STRINGS.home.alerts.readyForWork,
         [
-          { text: 'Biraz Daha', style: 'cancel' },
-          { text: 'Başla!', onPress: handleResetTimer }
+          { text: STRINGS.home.alerts.aBitMore, style: 'cancel' },
+          { text: STRINGS.home.alerts.start, onPress: handleResetTimer }
         ]
       );
     }
-  }, [sessionType, selectedCategory, distractionCount, completedPomodoros, handleStartBreak, handleResetTimer]);
+  }, [sessionType, selectedCategory, distractionCount, completedPomodoros, handleStartBreak, handleResetTimer, workMinutes]);
 
-  // 🔗 5. ADIM: Ref'i en güncel fonksiyonla doldur
+  // Ref'i güncelle (Her render'da en güncel fonksiyonu tutsun)
   useEffect(() => {
     onSessionCompleteRef.current = handleSessionComplete;
   }, [handleSessionComplete]);
 
-
-  // ... Diğer handlerlar ...
+  // Timer Başlat/Durdur
   const handleToggleTimer = () => {
     if (!selectedCategory) {
       NotificationService.showAlert(STRINGS.common.warning, STRINGS.home.alerts.selectCategory);
@@ -175,12 +201,14 @@ export default function HomeScreen() {
     }
   };
 
+  // Kategori Seçimi
   const handleCategorySelect = (category) => {
     if (!timer.isActive) {
       setSelectedCategory(category.name);
     }
   };
 
+  // Modal İşlemleri
   const handleResumeSession = () => {
     setShowResumeModal(false);
     timer.start();
@@ -189,6 +217,8 @@ export default function HomeScreen() {
   const handleStayPaused = () => {
     setShowResumeModal(false);
   };
+
+  // ---------------- RENDER HELPERS ----------------
 
   const getStatusText = () => {
     if (timer.isActive) {
@@ -202,8 +232,11 @@ export default function HomeScreen() {
   const isBreakMode = sessionType !== SESSION_TYPES.WORK;
   const progressColor = isBreakMode ? '#2ecc71' : '#4a90e2';
 
+  // ---------------- JSX RETURN ----------------
+
   return (
     <View style={[styles.container, isBreakMode && styles.containerBreak]}>
+      {/* 1. Başlık Alanı */}
       <View style={styles.header}>
         <Text style={styles.title}>
           {SessionService.getSessionTitle(sessionType)}
@@ -213,10 +246,12 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-     {showPomodoroBadge && (
+      {/* 2. Başarı Rozeti (Sadece true olduğunda görünür) */}
+      {showPomodoroBadge && (
         <PomodoroCounter count={completedPomodoros} />
       )}
 
+      {/* 3. Kategori Seçici (Sadece iş modunda görünür) */}
       {!isBreakMode && (
         <CategorySelector
           categories={categories}
@@ -227,16 +262,29 @@ export default function HomeScreen() {
         />
       )}
 
+      {/* 4. Sayaç Alanı (Tıklanabilir) */}
       <View style={styles.timerContainer}>
         <ProgressBar progress={timer.getProgress()} color={progressColor} />
-        <TimerDisplay
-          timeLeft={timer.timeLeft}
-          isBreak={isBreakMode}
-          status={getStatusText()}
-        />
+        
+        <TouchableOpacity 
+          onPress={() => !isBreakMode && !timer.isActive && setShowTimeModal(true)}
+          activeOpacity={!isBreakMode && !timer.isActive ? 0.7 : 1}
+        >
+          <TimerDisplay
+            timeLeft={timer.timeLeft}
+            isBreak={isBreakMode}
+            status={getStatusText()}
+          />
+          {/* Kullanıcıya ipucu ver (Sadece dururken ve iş modunda) */}
+          {!isBreakMode && !timer.isActive && (
+            <Text style={styles.editHint}>⏱️ Değiştirmek için dokun</Text>
+          )}
+        </TouchableOpacity>
+
         {!isBreakMode && <DistractionBadge count={distractionCount} />}
       </View>
 
+      {/* 5. Kontrol Butonları */}
       <TimerControls
         isActive={timer.isActive}
         onToggle={handleToggleTimer}
@@ -244,6 +292,9 @@ export default function HomeScreen() {
         isBreak={isBreakMode}
       />
 
+      {/* 6. Modallar */}
+      
+      {/* Otomatik Duraklatma Modalı */}
       <ResumeSessionModal
         visible={showResumeModal}
         timeLeft={timer.timeLeft}
@@ -251,6 +302,7 @@ export default function HomeScreen() {
         onStayPaused={handleStayPaused}
       />
 
+      {/* Kategori Yönetim Modalı */}
       <CategoryManagementModal
         visible={showCategoryModal}
         categories={categories}
@@ -258,9 +310,19 @@ export default function HomeScreen() {
         onAdd={addNewCategory}
         onDelete={removeCategory}
       />
+
+      {/* Süre Ayarlama Modalı (YENİ) */}
+      <TimeAdjustmentModal 
+        visible={showTimeModal}
+        currentMinutes={workMinutes}
+        onClose={() => setShowTimeModal(false)}
+        onSave={handleUpdateDuration}
+      />
     </View>
   );
 }
+
+// ---------------- STYLES ----------------
 
 const styles = StyleSheet.create({
   container: {
@@ -270,7 +332,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   containerBreak: {
-    backgroundColor: '#e8f5e9',
+    backgroundColor: '#e8f5e9', // Mola modunda yeşilimsi arka plan
   },
   header: {
     marginBottom: 20,
@@ -297,4 +359,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 10,
   },
+  editHint: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#4a90e2',
+    marginTop: -5,
+    marginBottom: 5,
+    fontWeight: '600',
+  }
 });
