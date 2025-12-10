@@ -2,7 +2,7 @@
 // utils/constants.js
 // ==========================================
 export const TIMER_DURATIONS = {
-  WORK: 25 * 60,
+  WORK: 60,
   SHORT_BREAK: 5 * 60,
   LONG_BREAK: 15 * 60,
 };

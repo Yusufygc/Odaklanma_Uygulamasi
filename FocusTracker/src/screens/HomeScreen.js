@@ -1,9 +1,10 @@
 // ==========================================
-// screens/HomeScreen.js - REFACTORED
+// screens/HomeScreen.js - FINAL FIX (Ref Proxy Pattern)
 // ==========================================
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native'; // ✅ Text eklendi
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { STRINGS } from '../constants/strings';
 
 // Hooks
 import { useTimer } from '../hooks/useTimer';
@@ -38,14 +39,26 @@ export default function HomeScreen() {
   // Custom Hooks
   const { categories, loadCategories, addNewCategory, removeCategory } = useCategories();
   
+  // 🔗 1. ADIM: Fonksiyonu tutacak bir Ref oluştur (Köprü)
+  const onSessionCompleteRef = useRef(null);
+
+  // 🔗 2. ADIM: useTimer'a bu Ref'i çağıran bir 'Proxy' fonksiyon ver
+  // Böylece timer tanımlanırken handleSessionComplete'in hazır olmasına gerek kalmaz.
   const timer = useTimer(
     SessionService.getSessionDuration(sessionType),
-    handleSessionComplete
+    () => {
+      console.log("🔗 Timer bitti, Ref üzerinden fonksiyon çağrılıyor...");
+      if (onSessionCompleteRef.current) {
+        onSessionCompleteRef.current();
+      } else {
+        console.error("❌ HATA: onSessionCompleteRef boş!");
+      }
+    }
   );
 
   // Lifecycle - Load categories on mount
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       loadCategories().then((cats) => {
         if (!selectedCategory && cats.length > 0) {
           setSelectedCategory(cats[0].name);
@@ -54,15 +67,12 @@ export default function HomeScreen() {
     }, [])
   );
 
-  // AppState Management - Handle app going to background/foreground
+  // AppState Management
   useAppState(
-    // onBackground callback
     () => handleAppBackground(),
-    // onForeground callback
     () => handleAppForeground()
   );
 
-  // Handlers
   const handleAppBackground = () => {
     if (timer.isActive && sessionType === SESSION_TYPES.WORK) {
       setWasActiveBeforeBackground(true);
@@ -79,24 +89,53 @@ export default function HomeScreen() {
     }
   };
 
-  const handleSessionComplete = async () => {
+  // 📝 3. ADIM: Timer fonksiyonlarını tanımla (Artık 'timer' değişkeni tanımlı olduğu için kullanabiliriz)
+  const handleResetTimer = useCallback(() => {
+    setSessionType(SESSION_TYPES.WORK);
+    timer.reset(TIMER_DURATIONS.WORK);
+    setDistractionCount(0);
+    setWasActiveBeforeBackground(false);
+  }, [timer]); // timer bağımlılığı eklendi
+
+  const handleStartBreak = useCallback((pomodoroCount) => {
+    const breakType = SessionService.calculateNextSessionType(pomodoroCount);
+    setSessionType(breakType);
+    timer.reset(SessionService.getSessionDuration(breakType));
+    setDistractionCount(0);
+    timer.start();
+  }, [timer]);
+
+  // 📝 4. ADIM: Ana bitiş fonksiyonunu tanımla
+  const handleSessionComplete = useCallback(async () => {
+    console.log("🏁 HomeScreen: handleSessionComplete çalıştı!");
+
     NotificationService.vibrate(VIBRATION_PATTERNS.COMPLETE);
 
     if (sessionType === SESSION_TYPES.WORK) {
-      await SessionService.saveSession(
+      if (!selectedCategory) {
+        console.error("❌ Kategori yok");
+        NotificationService.showError("Kategori seçilmediği için kaydedilemedi.");
+        return;
+      }
+
+      console.log("💾 Kayıt başlatılıyor...");
+      const success = await SessionService.saveSession(
         selectedCategory,
         TIMER_DURATIONS.WORK,
         distractionCount
       );
 
-      const newCount = completedPomodoros + 1;
-      setCompletedPomodoros(newCount);
-
-      NotificationService.showSessionComplete(
-        newCount,
-        () => handleStartBreak(newCount),
-        () => handleResetTimer()
-      );
+      if (success) {
+        console.log("✅ Kayıt başarılı.");
+        const newCount = completedPomodoros + 1;
+        setCompletedPomodoros(newCount);
+        
+        NotificationService.showSessionComplete(
+          newCount,
+          () => handleStartBreak(newCount),
+          () => handleResetTimer()
+        );
+      }
     } else {
       NotificationService.showAlert(
         '⏰ Mola Bitti!',
@@ -107,26 +146,18 @@ export default function HomeScreen() {
         ]
       );
     }
-  };
+  }, [sessionType, selectedCategory, distractionCount, completedPomodoros, handleStartBreak, handleResetTimer]);
 
-  const handleStartBreak = (pomodoroCount) => {
-    const breakType = SessionService.calculateNextSessionType(pomodoroCount);
-    setSessionType(breakType);
-    timer.reset(SessionService.getSessionDuration(breakType));
-    setDistractionCount(0);
-    timer.start();
-  };
+  // 🔗 5. ADIM: Ref'i en güncel fonksiyonla doldur
+  useEffect(() => {
+    onSessionCompleteRef.current = handleSessionComplete;
+  }, [handleSessionComplete]);
 
-  const handleResetTimer = () => {
-    setSessionType(SESSION_TYPES.WORK);
-    timer.reset(TIMER_DURATIONS.WORK);
-    setDistractionCount(0);
-    setWasActiveBeforeBackground(false);
-  };
 
+  // ... Diğer handlerlar ...
   const handleToggleTimer = () => {
     if (!selectedCategory) {
-      NotificationService.showAlert('Uyarı', 'Lütfen önce bir kategori seç!');
+      NotificationService.showAlert(STRINGS.common.warning, STRINGS.home.alerts.selectCategory);
       return;
     }
     
@@ -152,14 +183,13 @@ export default function HomeScreen() {
     setShowResumeModal(false);
   };
 
-  // Render helpers
   const getStatusText = () => {
     if (timer.isActive) {
       return sessionType === SESSION_TYPES.WORK 
-        ? "Odaklanılıyor... 🎯" 
-        : "Mola veriyor... ☕";
+        ? STRINGS.home.status.focusing 
+        : STRINGS.home.status.break;
     }
-    return "Hazır mısın? 💪";
+    return STRINGS.home.status.ready;
   };
 
   const isBreakMode = sessionType !== SESSION_TYPES.WORK;
@@ -167,7 +197,6 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, isBreakMode && styles.containerBreak]}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>
           {SessionService.getSessionTitle(sessionType)}
@@ -177,10 +206,8 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {/* Pomodoro Counter */}
       <PomodoroCounter count={completedPomodoros} />
 
-      {/* Category Selector - Only in work mode */}
       {!isBreakMode && (
         <CategorySelector
           categories={categories}
@@ -191,7 +218,6 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* Timer Container */}
       <View style={styles.timerContainer}>
         <ProgressBar progress={timer.getProgress()} color={progressColor} />
         <TimerDisplay
@@ -202,7 +228,6 @@ export default function HomeScreen() {
         {!isBreakMode && <DistractionBadge count={distractionCount} />}
       </View>
 
-      {/* Timer Controls */}
       <TimerControls
         isActive={timer.isActive}
         onToggle={handleToggleTimer}
@@ -210,7 +235,6 @@ export default function HomeScreen() {
         isBreak={isBreakMode}
       />
 
-      {/* Modals */}
       <ResumeSessionModal
         visible={showResumeModal}
         timeLeft={timer.timeLeft}

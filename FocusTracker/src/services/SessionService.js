@@ -3,6 +3,7 @@
 // ==========================================
 import { addSession } from '../utils/db';
 import { TIMER_DURATIONS, SESSION_TYPES, POMODORO_CYCLE } from '../utils/constants';
+import { STRINGS } from '../constants/strings'; // ✅ Import Eklendi
 
 export const SessionService = {
   async saveSession(category, duration, distractions) {
@@ -37,18 +38,18 @@ export const SessionService = {
 
   getSessionTitle(sessionType) {
     const titles = {
-      [SESSION_TYPES.WORK]: '🎯 Odaklan',
-      [SESSION_TYPES.SHORT_BREAK]: '☕ Kısa Mola',
-      [SESSION_TYPES.LONG_BREAK]: '🌟 Uzun Mola',
+      [SESSION_TYPES.WORK]: STRINGS.sessions.work.title,
+      [SESSION_TYPES.SHORT_BREAK]: STRINGS.sessions.shortBreak.title,
+      [SESSION_TYPES.LONG_BREAK]: STRINGS.sessions.longBreak.title,
     };
     return titles[sessionType] || titles[SESSION_TYPES.WORK];
   },
 
   getSessionSubtitle(sessionType) {
     const subtitles = {
-      [SESSION_TYPES.WORK]: 'Bir kategori seç ve başla',
-      [SESSION_TYPES.SHORT_BREAK]: 'Dinlen ve enerji topla',
-      [SESSION_TYPES.LONG_BREAK]: 'Dinlen ve enerji topla',
+      [SESSION_TYPES.WORK]: STRINGS.sessions.work.subtitle,
+      [SESSION_TYPES.SHORT_BREAK]: STRINGS.sessions.shortBreak.subtitle,
+      [SESSION_TYPES.LONG_BREAK]: STRINGS.sessions.longBreak.subtitle,
     };
     return subtitles[sessionType] || subtitles[SESSION_TYPES.WORK];
   },

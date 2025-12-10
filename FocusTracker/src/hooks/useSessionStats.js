@@ -1,158 +1,114 @@
-// ==========================================
 // hooks/useSessionStats.js
-// ==========================================
 import { useState, useCallback } from 'react';
-import { fetchSessions } from '../utils/db';
+import { 
+  fetchTotalStats, 
+  fetchTodayStats, 
+  fetchCategoryStats, 
+  fetchLast7DaysStats 
+} from '../utils/db';
 
 export const useSessionStats = () => {
-  const [sessions, setSessions] = useState([]);
+  const [stats, setStats] = useState({
+    totalDuration: 0,
+    totalDistractions: 0,
+    totalSessions: 0,
+    todayDuration: 0,
+    avgDuration: 0,
+  });
+  
+  const [pieData, setPieData] = useState([]);
+  const [barData, setBarData] = useState({ labels: [], datasets: [{ data: [] }] });
+  const [mostProductive, setMostProductive] = useState('Henüz yok');
   const [loading, setLoading] = useState(true);
 
   const loadSessions = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchSessions();
-      setSessions(data);
+      // Tüm sorguları paralel çalıştır (Performans için önemli)
+      const [totalRes, todayRes, categoryRes, weeklyRawRes] = await Promise.all([
+        fetchTotalStats(),
+        fetchTodayStats(),
+        fetchCategoryStats(),
+        fetchLast7DaysStats()
+      ]);
+
+      // 1. Genel İstatistikleri Ayarla
+      const avgDur = totalRes.totalSessions > 0 
+        ? totalRes.totalDuration / totalRes.totalSessions 
+        : 0;
+
+      setStats({
+        totalDuration: Math.ceil(totalRes.totalDuration / 60),
+        totalDistractions: totalRes.totalDistractions,
+        totalSessions: totalRes.totalSessions,
+        todayDuration: Math.ceil(todayRes / 60),
+        avgDuration: Math.ceil(avgDur / 60),
+      });
+
+      // 2. En Verimli Kategori ve Pasta Grafik Verisi
+      if (categoryRes.length > 0) {
+        setMostProductive(categoryRes[0].name);
+        
+        const colors = [
+          "#e74c3c", "#f39c12", "#2ecc71", "#3498db", 
+          "#9b59b6", "#1abc9c", "#e67e22"
+        ];
+
+        setPieData(categoryRes.map((item, index) => ({
+          name: item.name,
+          population: Math.ceil(item.totalDuration / 60),
+          color: colors[index % colors.length],
+          legendFontColor: "#555",
+          legendFontSize: 13,
+        })));
+      } else {
+        setMostProductive('Henüz yok');
+        setPieData([]);
+      }
+
+      // 3. Son 7 Gün Verisi (Bar Chart)
+      // Veritabanından gelen ham veriyi günlere dağıtıyoruz
+      const last7Days = [];
+      const today = new Date();
+      
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        last7Days.push({
+          label: d.getDate().toString(), // Ayın günü (Örn: 27)
+          fullDate: d.toDateString(),    // Eşleştirme için tam tarih
+          duration: 0
+        });
+      }
+
+      weeklyRawRes.forEach(item => {
+        const itemDate = new Date(item.date).toDateString();
+        const foundDay = last7Days.find(d => d.fullDate === itemDate);
+        if (foundDay) {
+          foundDay.duration += item.duration / 60;
+        }
+      });
+
+      setBarData({
+        labels: last7Days.map(d => d.label),
+        datasets: [{
+          data: last7Days.map(d => Math.ceil(d.duration)),//yuvarladık
+        }],
+      });
+
     } catch (error) {
-      console.error('Load sessions error:', error);
-      setSessions([]);
+      console.error('İstatistik yükleme hatası:', error);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const getFilteredSessions = useCallback((period) => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    return sessions.filter(item => {
-      const sessionDate = new Date(item.date);
-      const sessionDay = new Date(
-        sessionDate.getFullYear(),
-        sessionDate.getMonth(),
-        sessionDate.getDate()
-      );
-
-      switch (period) {
-        case 'week':
-          const weekAgo = new Date(today);
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          return sessionDay >= weekAgo;
-        
-        case 'month':
-          const monthAgo = new Date(today);
-          monthAgo.setMonth(monthAgo.getMonth() - 1);
-          return sessionDay >= monthAgo;
-        
-        case 'all':
-        default:
-          return true;
-      }
-    });
-  }, [sessions]);
-
-  const calculateStats = useCallback((filteredSessions) => {
-    const totalDuration = filteredSessions.reduce(
-      (sum, item) => sum + item.duration, 
-      0
-    ) / 60;
-
-    const totalDistractions = filteredSessions.reduce(
-      (sum, item) => sum + item.distractions, 
-      0
-    );
-
-    const totalSessions = filteredSessions.length;
-
-    const avgDuration = totalSessions > 0 
-      ? totalDuration / totalSessions 
-      : 0;
-
-    const today = new Date().toDateString();
-    const todayDuration = sessions
-      .filter(item => new Date(item.date).toDateString() === today)
-      .reduce((sum, item) => sum + item.duration, 0) / 60;
-
-    return {
-      totalDuration,
-      totalDistractions,
-      totalSessions,
-      avgDuration,
-      todayDuration,
-    };
-  }, [sessions]);
-
-  const getMostProductiveCategory = useCallback((filteredSessions) => {
-    if (filteredSessions.length === 0) return 'Henüz yok';
-
-    const categoryData = {};
-    filteredSessions.forEach(item => {
-      categoryData[item.category] = (categoryData[item.category] || 0) + item.duration;
-    });
-
-    const sorted = Object.entries(categoryData).sort((a, b) => b[1] - a[1]);
-    return sorted[0]?.[0] || 'Henüz yok';
-  }, []);
-
-  const getCategoryDistribution = useCallback((filteredSessions) => {
-    const categoryData = {};
-    
-    filteredSessions.forEach(item => {
-      categoryData[item.category] = (categoryData[item.category] || 0) + item.duration;
-    });
-
-    const colors = [
-      "#e74c3c", "#f39c12", "#2ecc71", "#3498db", 
-      "#9b59b6", "#1abc9c", "#e67e22"
-    ];
-
-    return Object.keys(categoryData).map((key, index) => ({
-      name: key,
-      population: Math.round(categoryData[key] / 60),
-      color: colors[index % colors.length],
-      legendFontColor: "#555",
-      legendFontSize: 13,
-    }));
-  }, []);
-
-  const getLast7DaysActivity = useCallback(() => {
-    const last7Days = [];
-    const today = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      last7Days.push({
-        date: date.toDateString(),
-        label: date.getDate().toString(),
-        duration: 0,
-      });
-    }
-
-    sessions.forEach(item => {
-      const sessionDate = new Date(item.date).toDateString();
-      const dayData = last7Days.find(d => d.date === sessionDate);
-      if (dayData) {
-        dayData.duration += item.duration / 60;
-      }
-    });
-
-    return {
-      labels: last7Days.map(d => d.label),
-      datasets: [{
-        data: last7Days.map(d => Math.round(d.duration)),
-      }],
-    };
-  }, [sessions]);
-
   return {
-    sessions,
+    stats,
+    pieData,
+    barData,
+    mostProductive,
     loading,
     loadSessions,
-    getFilteredSessions,
-    calculateStats,
-    getMostProductiveCategory,
-    getCategoryDistribution,
-    getLast7DaysActivity,
   };
 };

@@ -3,6 +3,7 @@
 // ==========================================
 import { Alert, Vibration } from 'react-native';
 import { VIBRATION_PATTERNS } from '../utils/constants';
+import { STRINGS } from '../constants/strings'; // ✅ Import
 
 export const NotificationService = {
   vibrate(pattern = VIBRATION_PATTERNS.SHORT) {
@@ -18,19 +19,19 @@ export const NotificationService = {
   },
 
   showSuccess(message, onPress) {
-    this.showAlert('Başarılı! ✅', message, [
-      { text: 'Tamam', onPress }
+    this.showAlert(STRINGS.common.success, message, [
+      { text: STRINGS.common.ok, onPress }
     ]);
   },
 
   showError(message) {
-    this.showAlert('Hata', message, [{ text: 'Tamam' }]);
+    this.showAlert(STRINGS.common.error, message, [{ text: STRINGS.common.ok }]);
   },
 
   showConfirmation(title, message, onConfirm, onCancel) {
     this.showAlert(title, message, [
-      { text: 'İptal', style: 'cancel', onPress: onCancel },
-      { text: 'Onayla', style: 'destructive', onPress: onConfirm }
+      { text: STRINGS.common.cancel, style: 'cancel', onPress: onCancel },
+      { text: STRINGS.common.confirm, style: 'destructive', onPress: onConfirm }
     ]);
   },
 
@@ -39,20 +40,20 @@ export const NotificationService = {
     
     if (isLongBreak) {
       this.showAlert(
-        '🎉 Harika İş!',
-        `${completedPomodoros}. Pomodoro'yu tamamladın! Uzun bir mola zamanı.`,
+        STRINGS.notifications.greatJob,
+        STRINGS.notifications.longBreakMsg(completedPomodoros), // ✅ Dinamik String
         [
-          { text: 'Daha Sonra', style: 'cancel', onPress: onContinue },
-          { text: 'Uzun Mola (15dk)', onPress: onBreak }
+          { text: STRINGS.notifications.buttons.later, style: 'cancel', onPress: onContinue },
+          { text: STRINGS.notifications.buttons.longBreak, onPress: onBreak }
         ]
       );
     } else {
       this.showAlert(
-        '✅ Tebrikler!',
-        'Odaklanma seansını başarıyla tamamladın! Kısa bir mola ister misin?',
+        STRINGS.notifications.congrats,
+        STRINGS.notifications.shortBreakMsg,
         [
-          { text: 'Devam Et', style: 'cancel', onPress: onContinue },
-          { text: 'Kısa Mola (5dk)', onPress: onBreak }
+          { text: STRINGS.notifications.buttons.continue, style: 'cancel', onPress: onContinue },
+          { text: STRINGS.notifications.buttons.shortBreak, onPress: onBreak }
         ]
       );
     }
