@@ -41,6 +41,9 @@ export default function ReportsScreen() {
     }, [loadSessions])
   );
 
+  // 🧮 Yüzdelik hesaplama için toplam süreyi bulalım
+  const totalDuration = pieData.reduce((acc, current) => acc + current.population, 0);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -122,20 +125,44 @@ export default function ReportsScreen() {
 
           <InsightCard insights={insights} />
 
-          {pieData.length > 0 && (
-            <ChartContainer title={STRINGS.reports.charts.categoryDist} icon="pie-chart">
-              <PieChart
-                data={pieData}
-                width={screenWidth - 40}
-                height={220}
-                chartConfig={chartConfig}
-                accessor="population"
-                backgroundColor="transparent"
-                paddingLeft="15"
-                absolute
-              />
-            </ChartContainer>
-          )}
+        <ChartContainer title={STRINGS.reports.charts.categoryDist} icon="pie-chart">
+          {/* 1. Grafik: Legend kapalı, tam ekran genişlik */}
+          <View style={{ alignItems: 'center' }}>
+            <PieChart
+              data={pieData}
+              width={screenWidth} // Ekranın tamamını kaplasın
+              height={240}        // Yüksekliği artırdık
+              chartConfig={chartConfig}
+              accessor="population"
+              backgroundColor="transparent"
+              paddingLeft={screenWidth / 4} // 🎯 Merkeze oturtmak için kritik ayar
+              hasLegend={false}   // ❌ Yan menüyü kapattık
+              absolute={false}    // Yüzdelik hesabı manuel yapacağız
+            />
+          </View>
+
+          {/* 2. Özel Alt Liste (Custom Legend) */}
+          <View style={styles.legendContainer}>
+            {pieData.map((item, index) => {
+              const percentage = ((item.population / totalDuration) * 100).toFixed(1);
+              return (
+                <View key={index} style={styles.legendItem}>
+                  <View style={styles.legendLeft}>
+                    <View style={[styles.colorDot, { backgroundColor: item.color }]} />
+                    <Text style={styles.legendText}>{item.name}</Text>
+                  </View>
+                  <View style={styles.legendRight}>
+                     {/* Süreyi (dk) ve Yüzdeyi göster */}
+                    <Text style={styles.legendValue}>
+                      {Math.ceil(item.population / 60)} dk
+                    </Text>
+                    <Text style={styles.legendPercentage}>%{percentage}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </ChartContainer>
 
           <ChartContainer title={STRINGS.reports.charts.weeklyActivity} icon="bar-chart">
             <BarChart
@@ -200,5 +227,50 @@ const styles = StyleSheet.create({
   },
   barChart: {
     borderRadius: 16,
+  },
+// ✨ YENİ STİLLER
+  legendContainer: {
+    width: '100%',
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  legendLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  colorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  legendText: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '500',
+  },
+  legendRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  legendValue: {
+    fontSize: 14,
+    color: '#666',
+  },
+  legendPercentage: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    minWidth: 45,
+    textAlign: 'right',
   },
 });

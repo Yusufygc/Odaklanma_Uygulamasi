@@ -56,7 +56,7 @@ export const useSessionStats = () => {
 
         setPieData(categoryRes.map((item, index) => ({
           name: item.name,
-          population: Math.ceil(item.totalDuration / 60),
+          population: item.totalDuration, // ✅ Yeni (Saniye - Daha hassas yüzde hesaplar)
           color: colors[index % colors.length],
           legendFontColor: "#555",
           legendFontSize: 13,
