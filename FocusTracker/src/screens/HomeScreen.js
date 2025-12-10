@@ -35,6 +35,7 @@ export default function HomeScreen() {
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [wasActiveBeforeBackground, setWasActiveBeforeBackground] = useState(false);
+  const [showPomodoroBadge, setShowPomodoroBadge] = useState(false); // ✨ YENİ
 
   // Custom Hooks
   const { categories, loadCategories, addNewCategory, removeCategory } = useCategories();
@@ -129,6 +130,12 @@ export default function HomeScreen() {
         console.log("✅ Kayıt başarılı.");
         const newCount = completedPomodoros + 1;
         setCompletedPomodoros(newCount);
+
+        // ✨ YENİ: Rozeti göster ve 4 saniye sonra gizle
+        setShowPomodoroBadge(true);
+        setTimeout(() => {
+          setShowPomodoroBadge(false);
+        }, 4000); // 4000 ms = 4 saniye
         
         NotificationService.showSessionComplete(
           newCount,
@@ -206,7 +213,9 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      <PomodoroCounter count={completedPomodoros} />
+     {showPomodoroBadge && (
+        <PomodoroCounter count={completedPomodoros} />
+      )}
 
       {!isBreakMode && (
         <CategorySelector
