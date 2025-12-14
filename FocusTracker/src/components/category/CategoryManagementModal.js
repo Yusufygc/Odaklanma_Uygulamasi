@@ -1,7 +1,7 @@
 // ==========================================
 // components/category/CategoryManagementModal.js
 // ==========================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -14,41 +14,103 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Button } from '../common/Button';
 import { IconButton } from '../common/IconButton';
+import { useTheme } from '../../context/ThemeContext';
 
 export const CategoryManagementModal = ({
   visible,
   categories,
   onClose,
   onAdd,
-  onDelete,
+  onUpdate, // Güncelleme fonksiyonu
+  onDelete, // Silme fonksiyonu
 }) => {
-  const [newCategoryName, setNewCategoryName] = useState('');
+  const { themeColors } = useTheme();
+  const [inputValue, setInputValue] = useState('');
+  const [editingId, setEditingId] = useState(null);
 
-  const handleAdd = async () => {
-    if (newCategoryName.trim()) {
-      const success = await onAdd(newCategoryName.trim());
+  // Sadece ekleme modu mu?
+  const isAddOnly = !onUpdate && !onDelete;
+
+  useEffect(() => {
+    if (!visible) {
+      setInputValue('');
+      setEditingId(null);
+    }
+  }, [visible]);
+
+  // 🛠️ DÜZELTME: Düzenleme ve Ekleme mantığı kesin olarak ayrıldı
+  const handleSubmit = async () => {
+    if (inputValue.trim()) {
+      let success = false;
+      
+      if (editingId) {
+        // --- DÜZENLEME MODU ---
+        // Eğer düzenleme modundaysak SADECE onUpdate'i dene.
+        // Asla onAdd bloğuna düşmemeli.
+        if (onUpdate) {
+          success = await onUpdate(editingId, inputValue.trim());
+        }
+      } else {
+        // --- EKLEME MODU ---
+        // Sadece düzenleme modu değilse ekleme yap
+        if (onAdd) {
+          success = await onAdd(inputValue.trim());
+        }
+      }
+
       if (success) {
-        setNewCategoryName('');
+        setInputValue('');
+        setEditingId(null);
       }
     }
   };
 
+  const startEditing = (category) => {
+    setInputValue(category.name);
+    setEditingId(category.id);
+  };
+
+  const cancelEditing = () => {
+    setInputValue('');
+    setEditingId(null);
+  };
+
   const renderCategoryItem = ({ item }) => (
-    <View style={styles.listItem}>
+    <View style={[styles.listItem, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
       <View style={styles.listItemLeft}>
-        <Ionicons name="pricetag" size={18} color="#4a90e2" />
-        <Text style={styles.listItemText}>{item.name}</Text>
+        <Ionicons name="pricetag" size={18} color={themeColors.primary} />
+        <Text style={[styles.listItemText, { color: themeColors.text }]}>{item.name}</Text>
       </View>
-      <IconButton
-        icon="trash-outline"
-        size={22}
-        color="#e74c3c"
-        onPress={() => onDelete(item.id, item.name)}
-      />
+      
+      {!isAddOnly && (
+        <View style={styles.actions}>
+          {onUpdate && (
+            <IconButton
+              icon="pencil"
+              size={20}
+              color={themeColors.textLight}
+              onPress={() => startEditing(item)}
+            />
+          )}
+          {onDelete && (
+            <IconButton
+              icon="trash-outline"
+              size={20}
+              color={themeColors.error}
+              onPress={() => onDelete(item.id, item.name)}
+            />
+          )}
+        </View>
+      )}
     </View>
   );
+
+  const getTitle = () => {
+    if (editingId) return '✏️ Kategoriyi Düzenle';
+    if (isAddOnly) return '➕ Yeni Kategori Ekle';
+    return '📝 Kategori Yönetimi';
+  };
 
   return (
     <Modal
@@ -61,59 +123,49 @@ export const CategoryManagementModal = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={onClose}
-        >
-          <View
-            style={styles.content}
-            onStartShouldSetResponder={() => true}
-          >
-            {/* Header */}
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
+          <View style={[styles.content, { backgroundColor: themeColors.background }]} onStartShouldSetResponder={() => true}>
             <View style={styles.header}>
-              <Text style={styles.title}>📝 Kategorileri Düzenle</Text>
-              <IconButton
-                icon="close-circle"
-                size={28}
-                color="#666"
-                onPress={onClose}
-              />
+              <Text style={[styles.title, { color: themeColors.text }]}>
+                {getTitle()}
+              </Text>
+              <IconButton icon="close-circle" size={28} color={themeColors.textLight} onPress={onClose} />
             </View>
 
-            {/* Input */}
             <View style={styles.inputContainer}>
               <TextInput
-                style={styles.input}
-                placeholder="Yeni kategori adı girin..."
-                value={newCategoryName}
-                onChangeText={setNewCategoryName}
+                style={[
+                  styles.input, 
+                  { 
+                    backgroundColor: themeColors.card, 
+                    color: themeColors.text,
+                    borderColor: editingId ? themeColors.primary : themeColors.border 
+                  }
+                ]}
+                placeholder={editingId ? "Kategori adını düzenle..." : "Yeni kategori adı..."}
+                placeholderTextColor={themeColors.textLight}
+                value={inputValue}
+                onChangeText={setInputValue}
                 maxLength={30}
-                onSubmitEditing={handleAdd}
+                onSubmitEditing={handleSubmit} // Klavyeden "Enter"a basınca tetikler
               />
-              <IconButton
-                icon="add-circle"
-                size={28}
-                color="#fff"
-                onPress={handleAdd}
-                style={styles.addButton}
-              />
+              
+              {editingId ? (
+                <View style={styles.editActions}>
+                  <IconButton icon="close" size={24} color={themeColors.error} onPress={cancelEditing} />
+                  <IconButton icon="checkmark" size={24} color={themeColors.success} onPress={handleSubmit} />
+                </View>
+              ) : (
+                <IconButton icon="add-circle" size={44} color={themeColors.success} onPress={handleSubmit} style={styles.addButton} />
+              )}
             </View>
 
-            {/* List */}
-            {categories.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="folder-open-outline" size={48} color="#ccc" />
-                <Text style={styles.emptyText}>Henüz kategori yok</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={categories}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderCategoryItem}
-                contentContainerStyle={styles.listContent}
-              />
-            )}
+            <FlatList
+              data={categories}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={renderCategoryItem}
+              contentContainerStyle={styles.listContent}
+            />
           </View>
         </TouchableOpacity>
       </KeyboardAvoidingView>
@@ -122,89 +174,18 @@ export const CategoryManagementModal = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  content: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '75%',
-    elevation: 10,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    marginBottom: 24,
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#e0e0e0',
-    fontSize: 15,
-  },
-  addButton: {
-    backgroundColor: '#2ecc71',
-    width: 50,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 2,
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
-  listItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    backgroundColor: '#fafafa',
-    marginBottom: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
-  },
-  listItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  listItemText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#999',
-  },
+  container: { flex: 1, justifyContent: 'flex-end' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  content: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%', elevation: 10 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  title: { fontSize: 20, fontWeight: 'bold' },
+  inputContainer: { flexDirection: 'row', marginBottom: 20, gap: 10, alignItems: 'center' },
+  input: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, fontSize: 16 },
+  addButton: { margin: 0, padding: 0 },
+  editActions: { flexDirection: 'row', gap: 5 },
+  listContent: { paddingBottom: 20 },
+  listItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 12, marginBottom: 8, borderRadius: 12, borderWidth: 1 },
+  listItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  listItemText: { fontSize: 16, fontWeight: '500' },
+  actions: { flexDirection: 'row' },
 });

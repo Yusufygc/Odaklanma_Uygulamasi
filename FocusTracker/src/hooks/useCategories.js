@@ -1,6 +1,3 @@
-// ==========================================
-// hooks/useCategories.js
-// ==========================================
 import { useState, useCallback } from 'react';
 import { CategoryService } from '../services/CategoryService';
 import { NotificationService } from '../services/NotificationService';
@@ -16,7 +13,6 @@ export const useCategories = () => {
       setCategories(data);
       return data;
     } catch (error) {
-      NotificationService.showError('Kategoriler yüklenemedi');
       return [];
     } finally {
       setLoading(false);
@@ -35,12 +31,24 @@ export const useCategories = () => {
     }
   }, [loadCategories]);
 
+  // ✨ YENİ: Güncelleme Hook'u
+  const updateCategory = useCallback(async (id, name) => {
+    try {
+      await CategoryService.update(id, name);
+      await loadCategories();
+      NotificationService.showSuccess('Kategori güncellendi');
+      return true;
+    } catch (error) {
+      NotificationService.showError(error.message || 'Güncelleme hatası');
+      return false;
+    }
+  }, [loadCategories]);
+
   const removeCategory = useCallback(async (id, name) => {
     if (!CategoryService.canDelete(categories)) {
       NotificationService.showError('En az bir kategori olmalı!');
       return false;
     }
-
     return new Promise((resolve) => {
       NotificationService.showConfirmation(
         'Kategori Sil',
@@ -65,6 +73,7 @@ export const useCategories = () => {
     loading,
     loadCategories,
     addNewCategory,
+    updateCategory, // ✨ Dışa aktarıldı
     removeCategory,
   };
 };

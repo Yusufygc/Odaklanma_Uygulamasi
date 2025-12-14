@@ -44,7 +44,8 @@ export const initDB = async () => {
   }
 };
 
-// --- KATEGORİ İŞLEMLERİ (Aynı Kalıyor) ---
+// --- KATEGORİ İŞLEMLERİ ---
+
 export const getCategories = async () => {
   const db = await getDB();
   return await db.getAllAsync('SELECT * FROM categories ORDER BY id DESC');
@@ -58,6 +59,15 @@ export const addCategory = async (name) => {
   } catch (error) { return false; }
 };
 
+// ✨ YENİ: Kategori Güncelleme Fonksiyonu (Sadece bu eklendi)
+export const updateCategoryInDB = async (id, newName) => {
+  try {
+    const db = await getDB();
+    await db.runAsync('UPDATE categories SET name = ? WHERE id = ?', newName, id);
+    return true;
+  } catch (error) { return false; }
+};
+
 export const deleteCategory = async (id) => {
   try {
     const db = await getDB();
@@ -66,15 +76,14 @@ export const deleteCategory = async (id) => {
   } catch (error) { return false; }
 };
 
-// --- SEANS İŞLEMLERİ (Optimize Edildi) ---
+// --- SEANS İŞLEMLERİ (Sizin Loglu Yapınız Korundu) ---
 
-// addSession fonksiyonunu bul ve bununla değiştir:
 export const addSession = async (category, duration, distractions) => {
   try {
     const db = await getDB();
     const date = new Date().toISOString();
     
-    // İşlem öncesi log
+    // İşlem öncesi log (Sizin kodunuz)
     console.log("💾 Veritabanına kayıt deneniyor:", { category, duration, date });
 
     const result = await db.runAsync(
@@ -82,7 +91,7 @@ export const addSession = async (category, duration, distractions) => {
       category, date, duration, distractions
     );
     
-    // Başarı logu
+    // Başarı logu (Sizin kodunuz)
     console.log("✅ Kayıt BAŞARILI. Yeni ID:", result.lastInsertRowId);
     return true; // Başarılı olduğunu dön
   } catch (error) {
@@ -91,7 +100,7 @@ export const addSession = async (category, duration, distractions) => {
   }
 };
 
-// 🌟 YENİ: Tek seferde Tüm İstatistikleri Hesaplayan Fonksiyonlar
+// --- İSTATİSTİK FONKSİYONLARI (Aynen Korundu) ---
 
 // 1. Genel Toplamlar (Tüm Zamanlar)
 export const fetchTotalStats = async () => {

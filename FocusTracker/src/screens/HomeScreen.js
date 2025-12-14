@@ -1,5 +1,5 @@
 // ==========================================
-// screens/HomeScreen.js - FINAL & COMPLETE
+// screens/HomeScreen.js - FINAL (Category Between Timer & Controls)
 // ==========================================
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
@@ -10,6 +10,7 @@ import { STRINGS } from '../constants/strings';
 import { useTimer } from '../hooks/useTimer';
 import { useAppState } from '../hooks/useAppState';
 import { useCategories } from '../hooks/useCategories';
+import { useTheme } from '../context/ThemeContext';
 
 // Components
 import { TimerDisplay } from '../components/timer/TimerDisplay';
@@ -28,6 +29,8 @@ import { NotificationService } from '../services/NotificationService';
 import { SESSION_TYPES, TIMER_DURATIONS, VIBRATION_PATTERNS } from '../utils/constants';
 
 export default function HomeScreen() {
+  const { themeColors } = useTheme();
+  
   // ---------------- STATE YÖNETİMİ ----------------
   const [sessionType, setSessionType] = useState(SESSION_TYPES.WORK);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -37,26 +40,22 @@ export default function HomeScreen() {
   // Modal Kontrolleri
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showTimeModal, setShowTimeModal] = useState(false); // ⏱️ Yeni Süre Modalı
-
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  
   // Durum Kontrolleri
   const [wasActiveBeforeBackground, setWasActiveBeforeBackground] = useState(false);
-  const [showPomodoroBadge, setShowPomodoroBadge] = useState(false); // 🏅 Başarı Rozeti
-
-  // Ayarlar
-  const [workMinutes, setWorkMinutes] = useState(25); // ⚙️ Varsayılan Çalışma Süresi
+  const [showPomodoroBadge, setShowPomodoroBadge] = useState(false);
+  const [workMinutes, setWorkMinutes] = useState(25);
 
   // Custom Hooks
   const { categories, loadCategories, addNewCategory, removeCategory } = useCategories();
   
-  // ---------------- REF PROXY (Döngüsel Bağımlılık Çözümü) ----------------
   const onSessionCompleteRef = useRef(null);
 
-  // Timer Hook Başlatma
+  // Timer Hook
   const timer = useTimer(
     sessionType === SESSION_TYPES.WORK ? workMinutes * 60 : SessionService.getSessionDuration(sessionType),
     () => {
-      console.log("🔗 Timer bitti, Ref üzerinden fonksiyon çağrılıyor...");
       if (onSessionCompleteRef.current) {
         onSessionCompleteRef.current();
       } else {
@@ -65,9 +64,8 @@ export default function HomeScreen() {
     }
   );
 
-  // ---------------- LIFECYCLE & APP STATE ----------------
+  // ---------------- LIFECYCLE ----------------
 
-  // Ekran odaklandığında kategorileri yükle
   useFocusEffect(
     useCallback(() => {
       loadCategories().then((cats) => {
@@ -78,9 +76,7 @@ export default function HomeScreen() {
     }, [])
   );
 
-  // Uygulama Arka Plana Geçince / Öne Gelince
   useAppState(
-    // onBackground
     () => {
       if (timer.isActive && sessionType === SESSION_TYPES.WORK) {
         setWasActiveBeforeBackground(true);
@@ -89,7 +85,6 @@ export default function HomeScreen() {
         NotificationService.vibrate(VIBRATION_PATTERNS.DISTRACTION);
       }
     },
-    // onForeground
     () => {
       if (wasActiveBeforeBackground && !timer.isActive && timer.timeLeft > 0) {
         setShowResumeModal(true);
@@ -98,29 +93,25 @@ export default function HomeScreen() {
     }
   );
 
-  // ---------------- HANDLERS (İş Mantığı) ----------------
+  // ---------------- HANDLERS ----------------
 
-  // Süre Güncelleme (Modal'dan gelen)
   const handleUpdateDuration = (minutes) => {
     setWorkMinutes(minutes);
     setShowTimeModal(false);
     
-    // Eğer şu an "Odaklan" modundaysak ve sayaç çalışmıyorsa, süreyi hemen güncelle
     if (!timer.isActive && sessionType === SESSION_TYPES.WORK) {
       timer.reset(minutes * 60);
       NotificationService.showSuccess(`Süre ${minutes} dk olarak ayarlandı`);
     }
   };
 
-  // Timer Sıfırlama
   const handleResetTimer = useCallback(() => {
     setSessionType(SESSION_TYPES.WORK);
-    timer.reset(workMinutes * 60); // Dinamik süreyi kullan
+    timer.reset(workMinutes * 60);
     setDistractionCount(0);
     setWasActiveBeforeBackground(false);
   }, [timer, workMinutes]);
 
-  // Mola Başlatma
   const handleStartBreak = useCallback((pomodoroCount) => {
     const breakType = SessionService.calculateNextSessionType(pomodoroCount);
     setSessionType(breakType);
@@ -129,48 +120,37 @@ export default function HomeScreen() {
     timer.start();
   }, [timer]);
 
-  // SEANS BİTİŞİ (Ana Fonksiyon)
   const handleSessionComplete = useCallback(async () => {
-    console.log("🏁 HomeScreen: handleSessionComplete çalıştı!");
-
     NotificationService.vibrate(VIBRATION_PATTERNS.COMPLETE);
 
     if (sessionType === SESSION_TYPES.WORK) {
       if (!selectedCategory) {
-        console.error("❌ Kategori yok");
         NotificationService.showError("Kategori seçilmediği için kaydedilemedi.");
         return;
       }
 
-      console.log(`💾 Kayıt Başlıyor: Kategori=${selectedCategory}, Süre=${workMinutes}dk`);
-      
-      // Veritabanına kaydet
       const success = await SessionService.saveSession(
         selectedCategory,
-        workMinutes * 60, // Dinamik süreyi saniye olarak gönder
+        workMinutes * 60,
         distractionCount
       );
 
       if (success) {
-        console.log("✅ Kayıt başarılı.");
         const newCount = completedPomodoros + 1;
         setCompletedPomodoros(newCount);
         
-        // ✨ Rozeti Göster ve 4sn sonra Gizle
         setShowPomodoroBadge(true);
         setTimeout(() => {
           setShowPomodoroBadge(false);
         }, 4000);
         
-        // Kullanıcıya Bildir
         NotificationService.showSessionComplete(
           newCount,
-          () => handleStartBreak(newCount), // Molaya geç
-          () => handleResetTimer()          // Veya bitir
+          () => handleStartBreak(newCount),
+          () => handleResetTimer()
         );
       }
     } else {
-      // Mola Bitişi
       NotificationService.showAlert(
         STRINGS.home.alerts.breakOver,
         STRINGS.home.alerts.readyForWork,
@@ -182,12 +162,10 @@ export default function HomeScreen() {
     }
   }, [sessionType, selectedCategory, distractionCount, completedPomodoros, handleStartBreak, handleResetTimer, workMinutes]);
 
-  // Ref'i güncelle (Her render'da en güncel fonksiyonu tutsun)
   useEffect(() => {
     onSessionCompleteRef.current = handleSessionComplete;
   }, [handleSessionComplete]);
 
-  // Timer Başlat/Durdur
   const handleToggleTimer = () => {
     if (!selectedCategory) {
       NotificationService.showAlert(STRINGS.common.warning, STRINGS.home.alerts.selectCategory);
@@ -201,14 +179,12 @@ export default function HomeScreen() {
     }
   };
 
-  // Kategori Seçimi
   const handleCategorySelect = (category) => {
     if (!timer.isActive) {
       setSelectedCategory(category.name);
     }
   };
 
-  // Modal İşlemleri
   const handleResumeSession = () => {
     setShowResumeModal(false);
     timer.start();
@@ -218,7 +194,7 @@ export default function HomeScreen() {
     setShowResumeModal(false);
   };
 
-  // ---------------- RENDER HELPERS ----------------
+  // ---------------- RENDER ----------------
 
   const getStatusText = () => {
     if (timer.isActive) {
@@ -230,40 +206,28 @@ export default function HomeScreen() {
   };
 
   const isBreakMode = sessionType !== SESSION_TYPES.WORK;
-  const progressColor = isBreakMode ? '#2ecc71' : '#4a90e2';
-
-  // ---------------- JSX RETURN ----------------
+  const progressColor = isBreakMode ? '#2ecc71' : themeColors.primary;
 
   return (
-    <View style={[styles.container, isBreakMode && styles.containerBreak]}>
-      {/* 1. Başlık Alanı */}
+    <View style={[styles.container, { backgroundColor: themeColors.background }, isBreakMode && styles.containerBreak]}>
+      
+      {/* 1. Başlık */}
       <View style={styles.header}>
-        <Text style={styles.title}>
+        <Text style={[styles.title, { color: themeColors.text }]}>
           {SessionService.getSessionTitle(sessionType)}
         </Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: themeColors.textLight }]}>
           {SessionService.getSessionSubtitle(sessionType)}
         </Text>
       </View>
 
-      {/* 2. Başarı Rozeti (Sadece true olduğunda görünür) */}
+      {/* 2. Rozet */}
       {showPomodoroBadge && (
         <PomodoroCounter count={completedPomodoros} />
       )}
 
-      {/* 3. Kategori Seçici (Sadece iş modunda görünür) */}
-      {!isBreakMode && (
-        <CategorySelector
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelect={handleCategorySelect}
-          onManage={() => setShowCategoryModal(true)}
-          disabled={timer.isActive}
-        />
-      )}
-
-      {/* 4. Sayaç Alanı (Tıklanabilir) */}
-      <View style={styles.timerContainer}>
+      {/* 3. Timer Container (Büyük Beyaz Kutu) */}
+      <View style={[styles.timerContainer, { backgroundColor: themeColors.card }]}>
         <ProgressBar progress={timer.getProgress()} color={progressColor} />
         
         <TouchableOpacity 
@@ -275,16 +239,30 @@ export default function HomeScreen() {
             isBreak={isBreakMode}
             status={getStatusText()}
           />
-          {/* Kullanıcıya ipucu ver (Sadece dururken ve iş modunda) */}
           {!isBreakMode && !timer.isActive && (
-            <Text style={styles.editHint}>⏱️ Değiştirmek için dokun</Text>
+            <Text style={[styles.editHint, { color: themeColors.primary }]}>⏱️ Değiştirmek için dokun</Text>
           )}
         </TouchableOpacity>
 
+        {/* Dikkat Rozeti */}
         {!isBreakMode && <DistractionBadge count={distractionCount} />}
       </View>
 
-      {/* 5. Kontrol Butonları */}
+      {/* 4. ✨ KATEGORİ SEÇİMİ (ARADA) */}
+      {!isBreakMode && (
+        <View style={styles.categoryWrapper}>
+          <CategorySelector
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelect={handleCategorySelect}
+            // Artık + butonuna basınca modal açılıyor
+            onManage={() => setShowCategoryModal(true)} 
+            disabled={timer.isActive}
+          />
+        </View>
+      )}
+
+      {/* 5. Kontrol Butonları (Mavi Buton) */}
       <TimerControls
         isActive={timer.isActive}
         onToggle={handleToggleTimer}
@@ -293,8 +271,6 @@ export default function HomeScreen() {
       />
 
       {/* 6. Modallar */}
-      
-      {/* Otomatik Duraklatma Modalı */}
       <ResumeSessionModal
         visible={showResumeModal}
         timeLeft={timer.timeLeft}
@@ -302,16 +278,14 @@ export default function HomeScreen() {
         onStayPaused={handleStayPaused}
       />
 
-      {/* Kategori Yönetim Modalı */}
+      {/* ⚠️ ÖNEMLİ: Modal Sadece Ekleme Modunda Çağrılıyor (onDelete/onUpdate YOK) */}
       <CategoryManagementModal
         visible={showCategoryModal}
         categories={categories}
         onClose={() => setShowCategoryModal(false)}
         onAdd={addNewCategory}
-        onDelete={removeCategory}
       />
 
-      {/* Süre Ayarlama Modalı (YENİ) */}
       <TimeAdjustmentModal 
         visible={showTimeModal}
         currentMinutes={workMinutes}
@@ -322,8 +296,6 @@ export default function HomeScreen() {
   );
 }
 
-// ---------------- STYLES ----------------
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -332,7 +304,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   containerBreak: {
-    backgroundColor: '#e8f5e9', // Mola modunda yeşilimsi arka plan
+    backgroundColor: '#e8f5e9',
   },
   header: {
     marginBottom: 20,
@@ -350,10 +322,10 @@ const styles = StyleSheet.create({
   timerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 30,
-    backgroundColor: '#fff',
+    marginVertical: 10, // Biraz daha sıkılaştırdık
     borderRadius: 20,
-    padding: 30,
+    paddingVertical: 30,
+    paddingHorizontal: 20,
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.15,
@@ -364,7 +336,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4a90e2',
     marginTop: -5,
-    marginBottom: 5,
+    marginBottom: 15,
     fontWeight: '600',
+  },
+  categoryWrapper: {
+    marginBottom: 20, // Buton ile ara boşluk
+    marginTop: 10,
+    width: '100%',
   }
 });

@@ -19,6 +19,7 @@ export const CategorySelector = ({
         horizontal 
         showsHorizontalScrollIndicator={false}
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
       >
         {categories.map((category) => (
           <CategoryButton
@@ -31,10 +32,12 @@ export const CategorySelector = ({
         ))}
       </ScrollView>
       
+      {/* ✨ İKON DEĞİŞTİ: Ayarlar yerine Ekle (+) */}
+      <View style={styles.separator} />
       <IconButton
-        icon="settings-sharp"
-        size={20}
-        color={disabled ? '#ccc' : '#666'}
+        icon="add" 
+        size={24}
+        color={disabled ? '#ccc' : '#4a90e2'}
         onPress={onManage}
         disabled={disabled}
         style={styles.manageButton}
@@ -47,23 +50,33 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 50,
-    marginBottom: 20,
+    height: 56, // Biraz yükselttik
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 5,
-    elevation: 2,
+    borderRadius: 16, // Daha yuvarlak hatlar
+    padding: 6,
+    elevation: 4, // Gölge efekti
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    width: '100%',
   },
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingHorizontal: 4,
+    alignItems: 'center',
+  },
+  separator: {
+    width: 1,
+    height: '60%',
+    backgroundColor: '#eee',
+    marginHorizontal: 4,
+  },
   manageButton: {
-    padding: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 20,
-    marginLeft: 5,
+    padding: 8,
+    borderRadius: 12,
+    marginLeft: 2,
   },
 });
