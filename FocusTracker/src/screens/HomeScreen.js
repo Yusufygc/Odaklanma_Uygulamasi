@@ -14,7 +14,7 @@ import { useTheme } from '../context/ThemeContext';
 
 // Components
 import { TimerDisplay } from '../components/timer/TimerDisplay';
-import { ProgressBar } from '../components/timer/ProgressBar';
+import { BoxProgressBar } from '../components/timer/BoxProgressBar'; 
 import { TimerControls } from '../components/timer/TimerControls';
 import { PomodoroCounter } from '../components/timer/PomodoroCounter';
 import { CategorySelector } from '../components/category/CategorySelector';
@@ -47,6 +47,9 @@ export default function HomeScreen() {
   const [showPomodoroBadge, setShowPomodoroBadge] = useState(false);
   const [workMinutes, setWorkMinutes] = useState(25);
 
+  // ✨ YENİ: Timer kutusunun boyutlarını tutmak için state
+  const [timerLayout, setTimerLayout] = useState({ width: 0, height: 0 });
+  
   // Custom Hooks
   const { categories, loadCategories, addNewCategory, removeCategory } = useCategories();
   
@@ -64,6 +67,7 @@ export default function HomeScreen() {
     }
   );
 
+  
   // ---------------- LIFECYCLE ----------------
 
   useFocusEffect(
@@ -101,7 +105,7 @@ export default function HomeScreen() {
     
     if (!timer.isActive && sessionType === SESSION_TYPES.WORK) {
       timer.reset(minutes * 60);
-      NotificationService.showSuccess(`Süre ${minutes} dk olarak ayarlandı`);
+      
     }
   };
 
@@ -226,9 +230,24 @@ export default function HomeScreen() {
         <PomodoroCounter count={completedPomodoros} />
       )}
 
+ 
       {/* 3. Timer Container (Büyük Beyaz Kutu) */}
-      <View style={[styles.timerContainer, { backgroundColor: themeColors.card }]}>
-        <ProgressBar progress={timer.getProgress()} color={progressColor} />
+      <View 
+        style={[styles.timerContainer, { backgroundColor: themeColors.card }]}
+        // ✨ YENİ: Kutunun boyutlarını al
+        onLayout={(event) => {
+          const { width, height } = event.nativeEvent.layout;
+          setTimerLayout({ width, height });
+        }}
+      >
+        {/* ✨ YENİ: Çevresel Progress Bar (Kutunun etrafını sarar) */}
+        <BoxProgressBar 
+          progress={timer.getProgress()} 
+          width={timerLayout.width} 
+          height={timerLayout.height} 
+          color={progressColor}
+          borderRadius={20} // Container borderRadius ile aynı olmalı
+        />
         
         <TouchableOpacity 
           onPress={() => !isBreakMode && !timer.isActive && setShowTimeModal(true)}
@@ -244,6 +263,7 @@ export default function HomeScreen() {
           )}
         </TouchableOpacity>
 
+
         {/* Dikkat Rozeti */}
         {!isBreakMode && <DistractionBadge count={distractionCount} />}
       </View>
@@ -257,7 +277,7 @@ export default function HomeScreen() {
             onSelect={handleCategorySelect}
             // Artık + butonuna basınca modal açılıyor
             onManage={() => setShowCategoryModal(true)} 
-            disabled={timer.isActive}
+            disabled={timer.isActive|| timer.getProgress() > 0}
           />
         </View>
       )}
