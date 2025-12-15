@@ -312,7 +312,6 @@ Bu proje bir dönem ödevi olarak geliştirilmiştir ve şu anda dış katkılar
 
 **Yusuf YGC**
 - GitHub: [@Yusufygc](https://github.com/Yusufygc)
-- Üniversite: BSM 447 - Mobil Uygulama Geliştirme
 
 ---
 
@@ -331,4 +330,4 @@ Bu proje bir dönem ödevi olarak geliştirilmiştir ve şu anda dış katkılar
 
 Made with ❤️ by [Yusuf YGC](https://github.com/Yusufygc)
 
-</div>s
+</div>
