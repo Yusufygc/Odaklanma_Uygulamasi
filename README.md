@@ -240,15 +240,16 @@ npx expo start -c
 ## 🎨 Ekran Görüntüleri
 
 ### Ana Sayfa - Odaklanma
-![Home Screen](https://via.placeholder.com/300x600?text=Ana+Ekran)
+![Home Screen](https://github.com/Yusufygc/Odaklanma_Uygulamasi/blob/main/FocusTracker/assets/screenshots/anasayfa1.png)
+![Home Screen](https://github.com/Yusufygc/Odaklanma_Uygulamasi/blob/main/FocusTracker/assets/screenshots/anasayfa2.png)
 
 ### Raporlar - İstatistikler
-![Reports Screen](https://via.placeholder.com/300x600?text=Raporlar)
+![Reports Screen](https://github.com/Yusufygc/Odaklanma_Uygulamasi/blob/main/FocusTracker/assets/screenshots/rapor1.png)
+![Reports Screen](https://github.com/Yusufygc/Odaklanma_Uygulamasi/blob/main/FocusTracker/assets/screenshots/rapor2.png)
 
 ### Ayarlar - Kategori Yönetimi
-![Settings Screen](https://via.placeholder.com/300x600?text=Ayarlar)
-
-> 📸 Ekran görüntülerini eklemek için `assets/screenshots/` klasörüne görsellerinizi ekleyin.
+![Settings Screen](https://github.com/Yusufygc/Odaklanma_Uygulamasi/blob/main/FocusTracker/assets/screenshots/ayarlar.png)
+![Settings Screen](https://github.com/Yusufygc/Odaklanma_Uygulamasi/blob/main/FocusTracker/assets/screenshots/ayarlar2.png)
 
 ---
 
