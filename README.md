@@ -307,12 +307,6 @@ Bu proje bir dönem ödevi olarak geliştirilmiştir ve şu anda dış katkılar
 
 ---
 
-## 📄 Lisans
-
-Bu proje [MIT](LICENSE) lisansı altında lisanslanmıştır.
-
----
-
 ## 👨‍💻 Geliştirici
 
 **Yusuf YGC**
