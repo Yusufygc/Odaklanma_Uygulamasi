@@ -59,21 +59,45 @@ export const addCategory = async (name) => {
   } catch (error) { return false; }
 };
 
-// ✨ YENİ: Kategori Güncelleme Fonksiyonu (Sadece bu eklendi)
+// ✨ GÜNCELLENMİŞ: Hem kategori adını hem de geçmiş seansları günceller
 export const updateCategoryInDB = async (id, newName) => {
   try {
     const db = await getDB();
-    await db.runAsync('UPDATE categories SET name = ? WHERE id = ?', newName, id);
+    
+    // 1. Önce eski kategori ismini bulalım
+    const oldCategory = await db.getFirstAsync('SELECT name FROM categories WHERE id = ?', [id]);
+    
+    if (!oldCategory) return false;
+
+    const oldName = oldCategory.name;
+
+    // 2. Kategori tablosunu güncelle
+    await db.runAsync('UPDATE categories SET name = ? WHERE id = ?', [newName, id]);
+
+    // 3. Geçmiş seans kayıtlarını da yeni isimle güncelle
+    // Böylece raporlarda eski isim yerine yeni isim görünür
+    await db.runAsync('UPDATE sessions SET category = ? WHERE category = ?', [newName, oldName]);
+
+    console.log(`✅ Kategori güncellendi: "${oldName}" -> "${newName}" (Geçmiş kayıtlar dahil)`);
     return true;
-  } catch (error) { return false; }
+  } catch (error) {
+    console.error("❌ Kategori güncelleme hatası:", error);
+    return false; 
+  }
 };
 
+// Silme fonksiyonu
 export const deleteCategory = async (id) => {
   try {
     const db = await getDB();
+    // SQL silme komutu
     await db.runAsync('DELETE FROM categories WHERE id = ?', id);
+    console.log(`✅ Kategori ID=${id} silindi.`);
     return true;
-  } catch (error) { return false; }
+  } catch (error) {
+    console.error("❌ DB Silme Hatası:", error);
+    return false; 
+  }
 };
 
 // --- SEANS İŞLEMLERİ (Sizin Loglu Yapınız Korundu) ---

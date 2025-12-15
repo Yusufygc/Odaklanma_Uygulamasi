@@ -29,6 +29,7 @@ export const CategoryService = {
       throw new Error('Geçersiz kategori adı');
     }
     try {
+      // updateCategoryInDB fonksiyonu artık arka planda her şeyi hallediyor
       const success = await updateCategoryInDB(id, name.trim());
       if (!success) throw new Error('Güncelleme başarısız');
       return true;
@@ -39,13 +40,15 @@ export const CategoryService = {
 
   async remove(id) {
     try {
-      await deleteCategory(id);
+      const success = await deleteCategory(id);
+      if (!success) throw new Error('Veritabanından silinemedi'); // Hata fırlat
       return true;
     } catch (error) {
       throw error;
     }
   },
 
+  // Bu fonksiyonu Hook içinde kullanıyoruz artık, ama burada kalması zarar vermez
   canDelete(categories) {
     return categories.length > 1;
   },
