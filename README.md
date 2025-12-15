@@ -1,134 +1,339 @@
-🎯 FocusTracker - Odaklanma ve Verimlilik AsistanıBSM 447 - Mobil Uygulama Geliştirme Dersi Dönem ProjesiDijital dikkat dağınıklığıyla mücadele etmek ve kişisel verimliliği artırmak için tasarlanmış kapsamlı bir mobil uygulama.📖 Proje HakkındaFocusTracker, Pomodoro tekniğini temel alarak kullanıcıların odaklanma sürelerini yönetmelerine, kategorize etmelerine ve detaylı grafiklerle analiz etmelerine olanak tanıyan bir React Native uygulamasıdır.Uygulamanın en belirgin özelliği **"Dikkat Dağınıklığı Takibi"**dir. Kullanıcı odaklanma seansı başlattığında, uygulama arka plana atılırsa (başka bir uygulamaya geçiş yapılırsa veya ana ekrana dönülürse), sayaç otomatik olarak durur ve bu durum bir "dağılma" olarak kaydedilir.✨ Temel Özellikler⏱️ Akıllı Zamanlayıcı: Çevresel ilerleme çubuğu (Circular/Box Progress) ile görselleştirilmiş, özelleştirilebilir odaklanma sayacı.🚫 Dikkat Dağınıklığı Algılama: AppState API kullanılarak kullanıcının uygulamadan çıkışları tespit edilir ve kaydedilir.📂 Kategori Yönetimi:Özel kategoriler oluşturma, düzenleme ve silme.Her kategoriye özel renk atama.Kategori bazlı istatistik takibi.📊 Detaylı Raporlar:Günlük, haftalık ve tüm zamanlar istatistikleri.Kategori dağılımını gösteren Pasta Grafikler.Haftalık performansı gösteren Çubuk Grafikler.🎨 Kişiselleştirme:Karanlık (Dark) ve Aydınlık (Light) mod desteği.Ayarlanabilir çalışma süreleri.🔒 Veri Bütünlüğü:Aktif seans sırasında kritik ayarların kilitlenmesi (Session Locking).SQLite ile tamamen yerel ve kalıcı veri saklama.📱 Ekran GörüntüleriAna Sayfa (Odaklan)Raporlar (İstatistik)Ayarlar & Kategori🛠️ Teknoloji YığınıBu proje aşağıdaki teknolojiler kullanılarak geliştirilmiştir:Framework: React Native (Expo SDK 52)Dil: JavaScript (ES6+)Veritabanı: expo-sqlite (Yerel Veritabanı)Navigasyon: react-native-navigation (Bottom Tabs)Grafikler: react-native-chart-kitDepolama: AsyncStorage (Ayarlar için)Vektör İkonlar: @expo/vector-icons📂 Proje Mimarisi ve Dosya YapısıProje, Feature-Based ve Clean Architecture prensiplerine uygun olarak modüler bir yapıda geliştirilmiştir.src/
-├── components/          # Yeniden kullanılabilir UI bileşenleri
-│   ├── category/        # Kategori seçimi ve yönetimi ile ilgili bileşenler
+# 🎯 FocusTracker
+
+<div align="center">
+
+![FocusTracker Banner](https://img.shields.io/badge/FocusTracker-Productivity%20Assistant-blue?style=for-the-badge)
+[![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-1B1F23?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
+[![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+
+**Dijital dikkat dağınıklığıyla mücadele edin, verimliliğinizi artırın**
+
+[Özellikler](#-özellikler) • [Kurulum](#-kurulum) • [Kullanım](#-kullanım) • [Mimari](#-mimari) • [Katkıda Bulunma](#-katkıda-bulunma)
+
+</div>
+
+---
+
+## 📖 Hakkında
+
+**FocusTracker**, Pomodoro tekniğini temel alarak geliştirilmiş, modern ve kullanıcı dostu bir mobil üretkenlik uygulamasıdır. Odaklanma sürelerinizi takip edin, kategorize edin ve detaylı grafiklerle analiz edin.
+
+> 🎓 **BSM 447 - Mobil Uygulama Geliştirme** dersi dönem projesi olarak geliştirilmiştir.
+
+### 🌟 Neden FocusTracker?
+
+- **🚫 Akıllı Dikkat Dağınıklığı Tespiti**: Uygulamadan her çıkışınız otomatik olarak algılanır ve kaydedilir
+- **📊 Derinlemesine Analiz**: Günlük, haftalık ve aylık performans raporları
+- **🎨 Kişiselleştirilmiş Deneyim**: Karanlık/aydınlık mod ve özel kategoriler
+- **💾 Tamamen Offline**: Tüm verileriniz cihazınızda güvende
+
+---
+
+## ✨ Özellikler
+
+### ⏱️ Akıllı Zamanlayıcı
+- Görsel olarak çekici dairesel ilerleme çubuğu
+- Özelleştirilebilir çalışma süreleri (5, 15, 25, 45, 60 dakika)
+- Otomatik duraklatma ve devam ettirme
+- Pomodoro döngü sistemi (4 çalışma + uzun mola)
+
+### 🚫 Dikkat Dağınıklığı Takibi
+- **AppState API** ile gerçek zamanlı uygulama durumu izleme
+- Arka plana geçişlerin otomatik tespiti
+- Her dağılma için timestamp ve süre kaydı
+- Görsel uyarılar ve geri dönüş önerileri
+
+### 📂 Kategori Yönetimi
+- Sınırsız özel kategori oluşturma
+- 12+ hazır renk paleti
+- Kategori bazlı istatistikler
+- Kategori düzenleme ve silme (veri bütünlüğü korunur)
+
+### 📊 Detaylı Raporlama
+- **Pasta Grafikleri**: Kategori dağılımı
+- **Çubuk Grafikleri**: Haftalık performans trendi
+- **İstatistik Kartları**: Toplam odaklanma, ortalama süre, en verimli gün
+- Filtreli görünümler: Bugün / Bu Hafta / Tüm Zamanlar
+
+### 🎨 Kullanıcı Deneyimi
+- Modern ve minimal arayüz tasarımı
+- Koyu/Açık tema desteği (sistem teması ile senkron)
+- Animasyonlu geçişler ve mikro-etkileşimler
+- Responsive tasarım (her ekran boyutuna uyumlu)
+
+### 🔒 Güvenlik ve Veri Bütünlüğü
+- Aktif seans sırasında kritik ayarların kilitlenmesi
+- SQLite ile tamamen yerel veri saklama
+- Kategori silme koruma sistemi
+- AsyncStorage ile kullanıcı tercihleri yedekleme
+
+---
+
+## 🛠️ Teknoloji Yığını
+
+| Teknoloji | Versiyon | Kullanım Alanı |
+|-----------|----------|----------------|
+| **React Native** | Latest | Çapraz platform mobil geliştirme |
+| **Expo SDK** | 52 | Geliştirme ve derleme framework'ü |
+| **SQLite** | expo-sqlite | Yerel veritabanı yönetimi |
+| **React Navigation** | v6 | Sayfa yönlendirme (Bottom Tabs) |
+| **Chart Kit** | react-native-chart-kit | Grafik ve görselleştirme |
+| **AsyncStorage** | @react-native-async-storage | Kullanıcı tercihleri saklama |
+| **Expo Vector Icons** | Latest | İkon seti |
+
+---
+
+## 📂 Proje Mimarisi
+
+FocusTracker, **Clean Architecture** ve **Feature-Based** prensiplere uygun olarak modüler bir yapıda geliştirilmiştir.
+
+```
+src/
+├── 📱 screens/              # Ana uygulama ekranları
+│   ├── HomeScreen.js        # Zamanlayıcı ve odaklanma ekranı
+│   ├── ReportsScreen.js     # İstatistik ve grafikler
+│   └── SettingsScreen.js    # Ayarlar ve kategori yönetimi
+│
+├── 🧩 components/           # Yeniden kullanılabilir UI bileşenleri
+│   ├── timer/               # Zamanlayıcı bileşenleri
+│   │   ├── CircularProgress.js
+│   │   ├── TimerControls.js
+│   │   └── TimePickerModal.js
+│   ├── category/            # Kategori bileşenleri
+│   │   ├── CategorySelector.js
 │   │   ├── CategoryButton.js
-│   │   ├── CategoryManagementModal.js
-│   │   └── CategorySelector.js
-│   ├── common/          # Genel amaçlı butonlar, inputlar, renk seçiciler
-│   ├── distraction/     # Dikkat dağılma uyarıları ve modalları
-│   ├── reports/         # Grafik ve istatistik kartları
-│   └── timer/           # Zamanlayıcı, progress bar ve kontrol butonları
+│   │   └── CategoryManagementModal.js
+│   ├── reports/             # Rapor bileşenleri
+│   │   ├── PieChart.js
+│   │   ├── BarChart.js
+│   │   └── StatCard.js
+│   ├── distraction/         # Dikkat dağınıklığı bileşenleri
+│   └── common/              # Genel bileşenler
 │
-├── context/             # Global state yönetimi (Context API)
-│   ├── SessionContext.js # Aktif seans kilit durumu kontrolü
-│   └── ThemeContext.js   # Tema (Dark/Light) yönetimi
+├── 🎣 hooks/                # Custom React Hooks (Business Logic)
+│   ├── useTimer.js          # Zamanlayıcı state ve logic
+│   ├── useCategories.js     # Kategori CRUD işlemleri
+│   ├── useSessionStats.js   # İstatistik hesaplamaları
+│   └── useAppState.js       # Uygulama durumu takibi
 │
-├── hooks/               # Logic ve View ayrımı için Custom Hooks
-│   ├── useAppState.js    # Uygulama arka plan/ön plan takibi
-│   ├── useCategories.js  # Kategori CRUD işlemleri
-│   ├── useSessionStats.js# Raporlama verilerinin hesaplanması
-│   └── useTimer.js       # Zamanlayıcı mantığı
+├── 🔧 services/             # Veritabanı servisleri
+│   ├── SessionService.js    # Seans CRUD işlemleri
+│   ├── CategoryService.js   # Kategori CRUD işlemleri
+│   └── TimerService.js      # Zamanlayıcı yardımcıları
 │
-├── navigation/          # Sayfa yönlendirmeleri (Tab Navigator)
-│   └── AppNavigator.js
+├── 🌐 context/              # Global State Management
+│   ├── ThemeContext.js      # Tema yönetimi
+│   └── SessionContext.js    # Aktif seans kilitleme
 │
-├── screens/             # Ana uygulama ekranları
-│   ├── HomeScreen.js     # Odaklanma/Sayaç ekranı
-│   ├── ReportsScreen.js  # İstatistikler ekranı
-│   └── SettingsScreen.js # Ayarlar ve yönetim ekranı
+├── 🎨 styles/               # Global stiller
+│   ├── colors.js            # Renk paleti
+│   ├── typography.js        # Yazı tipleri
+│   ├── spacing.js           # Boşluk sistemleri
+│   └── commonStyles.js      # Ortak stil tanımları
 │
-├── services/            # İş mantığı ve Veritabanı köprüsü
-│   ├── CategoryService.js
-│   ├── SessionService.js
-│   ├── TimerService.js
-│   └── NotificationService.js
+├── 🛠️ utils/               # Yardımcı fonksiyonlar
+│   ├── db.js                # SQLite kurulum ve bağlantı
+│   ├── constants.js         # Sabit değerler
+│   ├── timeFormatter.js     # Süre formatları (mm:ss)
+│   └── validators.js        # Girdi doğrulama
 │
-├── styles/              # Global stiller, renk paletleri ve tipografi
-│   ├── colors.js
-│   ├── commonStyles.js
-│   ├── spacing.js
-│   └── typography.js
-│
-└── utils/               # Yardımcı fonksiyonlar ve sabitler
-    ├── constants.js      # Sabit değerler (Süreler, mesajlar)
-    ├── db.js             # SQLite veritabanı kurulum ve sorguları
-    ├── timeFormatter.js  # Süre formatlama (mm:ss)
-    └── validators.js     # Girdi doğrulama
-Klasörlerin Görevlericomponents/: Sadece arayüz (UI) çizen, iş mantığından (business logic) mümkün olduğunca arındırılmış "akılsız" bileşenlerdir.screens/: Bileşenleri bir araya getiren, hook'ları kullanan ve kullanıcı ile etkileşime geçen ana sayfalardır.services/: Veritabanı (db.js) ile iletişim kuran, ham veriyi işleyen katmandır. UI'dan tamamen bağımsızdır.hooks/: Servisleri kullanarak veriyi çeken, state'i yöneten ve UI'a hazır veri sunan katmandır.context/: Uygulamanın genelini ilgilendiren (Tema rengi, Seans kilit durumu) verilerin tutulduğu yerdir.utils/: Veritabanı bağlantısı (db.js) ve yardımcı araçların bulunduğu yerdir.💾 Veritabanı ŞemasıUygulama yerel SQLite veritabanı kullanır ve iki ana tablodan oluşur:categories Tablosu:id: INTEGER (PK)name: TEXT (Benzersiz)color: TEXT (Hex kodu)sessions Tablosu:id: INTEGER (PK)category: TEXT (Kategori Adı)date: TEXT (ISO Date String)duration: INTEGER (Saniye cinsinden)distractions: INTEGER (Dağılma sayısı)Not: Kategori silinse bile, veri bütünlüğünü korumak adına sessions tablosundaki geçmiş kayıtlar silinmez, rengi griye döner.🚀 Kurulum ve ÇalıştırmaProjeyi yerel makinenizde çalıştırmak için aşağıdaki adımları izleyin:Depoyu Klonlayın:git clone [https://github.com/KULLANICI_ADINIZ/focus-tracker.git](https://github.com/KULLANICI_ADINIZ/focus-tracker.git)
-cd focus-tracker
-Bağımlılıkları Yükleyin:npm install
+└── 🧭 navigation/           # Navigasyon yapılandırması
+    └── AppNavigator.js      # Tab Navigator setup
+```
+
+### 🏗️ Mimari Prensipleri
+
+1. **Separation of Concerns**: UI ve business logic tamamen ayrılmıştır
+2. **Single Responsibility**: Her dosya tek bir sorumluluğa sahiptir
+3. **DRY Principle**: Ortak kodlar components ve hooks içinde yeniden kullanılabilir
+4. **Clean Code**: ESLint ve Prettier ile kod kalitesi korunur
+
+---
+
+## 💾 Veritabanı Şeması
+
+### `categories` Tablosu
+```sql
+CREATE TABLE categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL,
+  color TEXT NOT NULL
+);
+```
+
+### `sessions` Tablosu
+```sql
+CREATE TABLE sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category TEXT NOT NULL,
+  date TEXT NOT NULL,
+  duration INTEGER NOT NULL,
+  distractions INTEGER DEFAULT 0
+);
+```
+
+> 💡 **Not**: Kategori silinse bile, veri bütünlüğü korunur. Geçmiş seanslar silinmez, yalnızca rengi gri olarak gösterilir.
+
+---
+
+## 🚀 Kurulum
+
+### Gereksinimler
+- Node.js (v16 veya üzeri)
+- npm veya yarn
+- Expo Go uygulaması (mobil test için)
+
+### Adım Adım Kurulum
+
+1. **Depoyu klonlayın**
+```bash
+git clone https://github.com/Yusufygc/Odaklanma_Uygulamasi.git
+cd Odaklanma_Uygulamasi/FocusTracker
+```
+
+2. **Bağımlılıkları yükleyin**
+```bash
+npm install
 # veya
 yarn install
-Uygulamayı Başlatın:npx expo start -c
-Test Edin:Expo Go uygulamasını telefonunuza indirin.Terminalde çıkan QR kodu taratın.🤝 Katkıda BulunmaBu bir dönem projesi olduğu için şu an dışarıdan katkıya kapalıdır. Ancak fork alıp geliştirebilirsiniz.📄 LisansBu proje MIT lisansı ile lisanslanmıştır.
+```
 
-graph TD
-    Start((Başlangıç)) --> Init[Veritabanı Başlatma<br/>(initDB)]
-    Init --> ThemeCheck[Tema Tercihlerini Yükle<br/>(AsyncStorage)]
-    ThemeCheck --> Navigator{Tab Navigator}
+3. **Uygulamayı başlatın**
+```bash
+npx expo start -c
+```
 
-    %% --- 1. ANA SAYFA AKIŞI ---
-    Navigator -->|Odaklan Tab| Home[Ana Sayfa<br/>(HomeScreen)]
-    Home --> UserAction{Kullanıcı Eylemi}
-    
-    UserAction -->|Süreye Tıkla| TimeModal[Süre Ayarlama Modalı]
-    TimeModal --> UpdateTime[Süreyi Güncelle]
-    UpdateTime --> Home
+4. **Test edin**
+- Telefonunuza **Expo Go** uygulamasını indirin
+- Terminalde çıkan QR kodu taratın
+- Veya emülatör/simulator kullanın
 
-    UserAction -->|Kategori Seç| CatSelect[Kategori Seçimi]
-    CatSelect --> Home
+---
 
-    UserAction -->|Kategori Ekle (+)| CatAdd[Kategori Ekleme Modalı]
-    CatAdd --> SaveCat[Yeni Kategoriyi Kaydet]
-    SaveCat --> Home
+## 📱 Kullanım
 
-    UserAction -->|Başlat Butonu| TimerStart[Sayaç Başlatılır<br/>(useTimer)]
-    
-    TimerStart --> AppStateCheck{Uygulama Durumu<br/>(useAppState)}
-    
-    AppStateCheck -->|Arka Plana Geçti| Distraction[Dikkat Dağılma Algılandı]
-    Distraction --> PauseTimer[Sayacı Duraklat]
-    Distraction --> IncDistraction[Dağılma Sayacını Artır]
-    IncDistraction --> ResumeModal[Devam Etme Modalı]
-    ResumeModal -->|Devam Et| TimerStart
-    ResumeModal -->|Duraklat| PauseState[Duraklatıldı]
+### Hızlı Başlangıç
 
-    AppStateCheck -->|Aktif| Counting[Geri Sayım Devam Ediyor]
-    
-    Counting --> TimeCheck{Süre = 0?}
-    TimeCheck -->|Hayır| Counting
-    TimeCheck -->|Evet| Finish[Seans Tamamlandı]
-    
-    Finish --> DBSave[(Veritabanına Kaydet<br/>sessions tablosu)]
-    DBSave --> PomoInc[Pomodoro Sayacını Artır]
-    PomoInc --> BreakCheck{Döngü Tamamlandı mı?<br/>(4 Pomodoro)}
-    BreakCheck -->|Evet| LongBreak[Uzun Mola Öner]
-    BreakCheck -->|Hayır| ShortBreak[Kısa Mola Öner]
-    
-    LongBreak --> BreakMode[Mola Moduna Geç]
-    ShortBreak --> BreakMode
-    BreakMode --> SkipBreak{Molayı Atla?}
-    SkipBreak -->|Evet| Home
-    SkipBreak -->|Hayır| TimerStart
+1. **İlk Kategori Oluşturma**
+   - Ayarlar sekmesine gidin
+   - "Kategori Ekle" butonuna tıklayın
+   - Kategori adı ve renk seçin
 
-    %% --- 2. RAPORLAR AKIŞI ---
-    Navigator -->|Raporlar Tab| Reports[Raporlar Sayfası<br/>(ReportsScreen)]
-    Reports --> DBFetch[(Verileri Çek<br/>useSessionStats)]
-    
-    DBFetch --> ProcessData[İstatistikleri Hesapla]
-    ProcessData --> CalcCharts[Grafik Verilerini Hazırla]
-    
-    CalcCharts --> RenderUI[Görselleştirme]
-    RenderUI --> PieChart[Pasta Grafik<br/>(Kategori Dağılımı)]
-    RenderUI --> BarChart[Çubuk Grafik<br/>(Haftalık Aktivite)]
-    RenderUI --> StatCards[İstatistik Kartları]
+2. **Odaklanma Seansı Başlatma**
+   - Ana ekranda kategori seçin
+   - Süreyi ayarlayın (varsayılan 25 dakika)
+   - "Başlat" butonuna tıklayın
 
-    %% --- 3. AYARLAR AKIŞI ---
-    Navigator -->|Ayarlar Tab| Settings[Ayarlar Sayfası<br/>(SettingsScreen)]
-    
-    Settings --> ThemeAction{Görünüm Ayarı}
-    ThemeAction -->|Değiştir| ToggleTheme[Tema Değiştir<br/>(Dark/Light)]
-    ToggleTheme --> SavePref[Tercihi Kaydet]
+3. **Dikkat Dağınıklığı Takibi**
+   - Seans sırasında uygulamadan çıkarsanız
+   - Otomatik olarak duraklatılır
+   - Geri döndüğünüzde devam ettirebilirsiniz
 
-    Settings --> ManageAction{Yönetim İşlemleri}
-    ManageAction --> CheckSession{Aktif Seans Var mı?<br/>(SessionContext)}
+4. **Raporları Görüntüleme**
+   - Raporlar sekmesine gidin
+   - Günlük/Haftalık/Tüm Zamanlar filtrelerini kullanın
+   - Grafikler ve istatistikleri inceleyin
+
+---
+
+## 🎨 Ekran Görüntüleri
+
+### Ana Sayfa - Odaklanma
+![Home Screen](https://via.placeholder.com/300x600?text=Ana+Ekran)
+
+### Raporlar - İstatistikler
+![Reports Screen](https://via.placeholder.com/300x600?text=Raporlar)
+
+### Ayarlar - Kategori Yönetimi
+![Settings Screen](https://via.placeholder.com/300x600?text=Ayarlar)
+
+> 📸 Ekran görüntülerini eklemek için `assets/screenshots/` klasörüne görsellerinizi ekleyin.
+
+---
+
+## 🔄 Uygulama Akışı
+
+```mermaid
+graph TB
+    A[Uygulama Başlangıcı] --> B[Veritabanı İnit]
+    B --> C[Tema Yükleme]
+    C --> D{Ana Sayfa}
     
-    CheckSession -->|Evet (Kilitli)| BlockAction[İşlemi Engelle & Uyarı Ver]
+    D -->|Kategori Seç| E[Kategori Seçimi]
+    D -->|Süre Ayarla| F[Süre Modalı]
+    D -->|Başlat| G[Zamanlayıcı Başlar]
     
-    CheckSession -->|Hayır (Müsait)| AllowAction[İşleme İzin Ver]
+    G --> H{AppState Check}
+    H -->|Arka Plan| I[Dikkat Dağınıklığı]
+    H -->|Aktif| J[Geri Sayım]
     
-    AllowAction --> CRUDCat[Kategori Yönetimi]
-    CRUDCat -->|Ekle/Düzenle/Sil| DBUpdate[(Veritabanı Güncelle)]
+    I --> K[Duraklatma]
+    K --> L[Devam Modalı]
+    L --> G
     
-    AllowAction --> ClearData[Verileri Temizle]
-    ClearData --> DBWipe[(Tüm Tabloları Sil & Sıfırla)]
+    J --> M{Süre Bitti?}
+    M -->|Evet| N[Seans Kaydet]
+    M -->|Hayır| J
+    
+    N --> O[Mola Öner]
+    O --> D
+```
+
+---
+
+## 🧪 Test Senaryoları
+
+- ✅ Zamanlayıcı başlatma ve durdurma
+- ✅ Arka plana geçişte otomatik duraklatma
+- ✅ Kategori ekleme, düzenleme, silme
+- ✅ Aktif seans sırasında ayar kilitleme
+- ✅ İstatistik hesaplama doğruluğu
+- ✅ Tema değiştirme ve kalıcılık
+- ✅ Veri tabanı CRUD işlemleri
+
+---
+
+## 🤝 Katkıda Bulunma
+
+Bu proje bir dönem ödevi olarak geliştirilmiştir ve şu anda dış katkılara kapalıdır. Ancak projeyi fork'layıp kendi geliştirmelerinizi yapabilirsiniz.
+
+### Geliştirme Planı
+- [ ] Bildirim sistemi entegrasyonu
+- [ ] Bulut yedekleme (Firebase/Supabase)
+- [ ] Widget desteği
+- [ ] Sosyal özellikler (arkadaşlarla rekabet)
+- [ ] Dark pattern analizi
+
+---
+
+## 📄 Lisans
+
+Bu proje [MIT](LICENSE) lisansı altında lisanslanmıştır.
+
+---
+
+## 👨‍💻 Geliştirici
+
+**Yusuf YGC**
+- GitHub: [@Yusufygc](https://github.com/Yusufygc)
+- Üniversite: BSM 447 - Mobil Uygulama Geliştirme
+
+---
+
+## 📚 Referanslar
+
+- [React Native Docs](https://reactnative.dev/docs/getting-started)
+- [Expo Documentation](https://docs.expo.dev/)
+- [Pomodoro Technique](https://francescocirillo.com/pages/pomodoro-technique)
+- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+
+---
+
+<div align="center">
+
+**⭐ Projeyi beğendiyseniz yıldız vermeyi unutmayın!**
+
+Made with ❤️ by [Yusuf YGC](https://github.com/Yusufygc)
+
+</div>s
