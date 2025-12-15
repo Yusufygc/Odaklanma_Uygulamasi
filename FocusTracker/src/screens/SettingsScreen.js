@@ -1,13 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useSession } from '../context/SessionContext'; // ✨ Yeni import
 import { useCategories } from '../hooks/useCategories';
 import { CategoryManagementModal } from '../components/category/CategoryManagementModal';
+import { clearAllData } from '../utils/db'; 
 
 export default function SettingsScreen() {
   const { isDarkMode, toggleTheme, themeColors } = useTheme();
+  const { isSessionLocked } = useSession(); // ✨ Seans kilit durumunu al
   const { categories, loadCategories, addNewCategory, updateCategory, removeCategory } = useCategories();
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
@@ -16,6 +19,43 @@ export default function SettingsScreen() {
       loadCategories();
     }, [])
   );
+
+  // Seans aktifken işlem yapılmasını engelleyen yardımcı fonksiyon
+  const checkSessionStatus = (callback) => {
+    if (isSessionLocked) {
+      Alert.alert(
+        "İşlem Engellendi 🚫",
+        "Aktif veya duraklatılmış bir odaklanma seansınız var. Ayarları değiştirmek için önce seansı bitirmeli veya sıfırlamalısınız."
+      );
+    } else {
+      callback();
+    }
+  };
+
+  const handleClearData = () => {
+    checkSessionStatus(() => {
+      Alert.alert(
+        "Dikkat! ⚠️",
+        "Tüm odaklanma geçmişiniz ve kategorileriniz silinip fabrika ayarlarına dönülecek. Bu işlem geri alınamaz. Emin misiniz?",
+        [
+          { text: "İptal", style: "cancel" },
+          { 
+            text: "Evet, Sil", 
+            style: "destructive",
+            onPress: async () => {
+              const success = await clearAllData();
+              if (success) {
+                await loadCategories(); 
+                Alert.alert("Başarılı", "Tüm veriler temizlendi. Tertemiz bir sayfa açtınız! ✨");
+              } else {
+                Alert.alert("Hata", "Veriler temizlenirken bir sorun oluştu.");
+              }
+            }
+          }
+        ]
+      );
+    });
+  };
 
   const SettingsSection = ({ title, children }) => (
     <View style={styles.section}>
@@ -26,7 +66,7 @@ export default function SettingsScreen() {
     </View>
   );
 
-  const SettingsItem = ({ icon, label, value, onPress, isSwitch, switchValue, onSwitchChange, color }) => (
+  const SettingsItem = ({ icon, label, value, onPress, isSwitch, switchValue, onSwitchChange, color, textColor }) => (
     <TouchableOpacity 
       style={[styles.item, { borderBottomColor: themeColors.border }]} 
       onPress={onPress}
@@ -37,7 +77,7 @@ export default function SettingsScreen() {
         <View style={[styles.iconContainer, { backgroundColor: color || themeColors.primary }]}>
           <Ionicons name={icon} size={20} color="#fff" />
         </View>
-        <Text style={[styles.itemText, { color: themeColors.text }]}>{label}</Text>
+        <Text style={[styles.itemText, { color: textColor || themeColors.text }]}>{label}</Text>
       </View>
       
       {isSwitch ? (
@@ -79,8 +119,19 @@ export default function SettingsScreen() {
             icon="list"
             label="Kategorileri Düzenle"
             value={`${categories.length} Kategori`}
-            onPress={() => setShowCategoryModal(true)}
+            // ✨ checkSessionStatus ile korumaya aldık
+            onPress={() => checkSessionStatus(() => setShowCategoryModal(true))}
             color="#4a90e2"
+          />
+        </SettingsSection>
+
+        <SettingsSection title="Veri Yönetimi">
+          <SettingsItem
+            icon="trash-bin"
+            label="Verilerimi Temizle"
+            onPress={handleClearData} // ✨ İçinde checkSessionStatus var
+            color="#e74c3c"
+            textColor="#e74c3c"
           />
         </SettingsSection>
 

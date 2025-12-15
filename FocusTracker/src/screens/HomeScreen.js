@@ -11,6 +11,7 @@ import { useTimer } from '../hooks/useTimer';
 import { useAppState } from '../hooks/useAppState';
 import { useCategories } from '../hooks/useCategories';
 import { useTheme } from '../context/ThemeContext';
+import { useSession } from '../context/SessionContext'; // ✨ Yeni import
 
 // Components
 import { TimerDisplay } from '../components/timer/TimerDisplay';
@@ -30,6 +31,7 @@ import { SESSION_TYPES, TIMER_DURATIONS, VIBRATION_PATTERNS } from '../utils/con
 
 export default function HomeScreen() {
   const { themeColors } = useTheme();
+  const { setIsSessionLocked } = useSession(); // ✨ Context'ten fonksiyonu al
   
   // ---------------- STATE YÖNETİMİ ----------------
   const [sessionType, setSessionType] = useState(SESSION_TYPES.WORK);
@@ -67,6 +69,12 @@ export default function HomeScreen() {
     }
   );
 
+    // ✨ Session Locking Mantığı
+  useEffect(() => {
+    // Eğer timer çalışıyorsa VEYA süre ilerlemişse (yani duraklatılmışsa) kilitli
+    const isLocked = timer.isActive || timer.getProgress() > 0;
+    setIsSessionLocked(isLocked);
+  }, [timer.isActive, timer.timeLeft]); // timer.timeLeft değiştiğinde progress değişir
   
   // ---------------- LIFECYCLE ----------------
 
@@ -115,6 +123,23 @@ export default function HomeScreen() {
     setDistractionCount(0);
     setWasActiveBeforeBackground(false);
   }, [timer, workMinutes]);
+
+    // ✨ YENİ: Molayı Atla Fonksiyonu
+  const handleSkipBreak = useCallback(() => {
+    Alert.alert(
+      "Molayı Bitir",
+      "Dinlenmeyi bitirip çalışmaya dönmek istiyor musun?",
+      [
+        { text: "Vazgeç", style: "cancel" },
+        { 
+          text: "Evet, Çalışmaya Dön", 
+          onPress: () => {
+            handleResetTimer(); // Bu fonksiyon zaten WORK moduna döndürüyor
+          }
+        }
+      ]
+    );
+  }, [handleResetTimer]);
 
   const handleStartBreak = useCallback((pomodoroCount) => {
     const breakType = SessionService.calculateNextSessionType(pomodoroCount);
@@ -290,6 +315,14 @@ export default function HomeScreen() {
         isBreak={isBreakMode}
       />
 
+      
+      {/* ✨ YENİ: Sadece Mola Modunda Görünen "Atla" Butonu */}
+      {isBreakMode && (
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkipBreak}>
+          <Text style={styles.skipButtonText}>Molayı Bitir ve Dön ⏩</Text>
+        </TouchableOpacity>
+      )}
+      
       {/* 6. Modallar */}
       <ResumeSessionModal
         visible={showResumeModal}
@@ -363,5 +396,17 @@ const styles = StyleSheet.create({
     marginBottom: 20, // Buton ile ara boşluk
     marginTop: 10,
     width: '100%',
+  },
+    // Yeni Stiller
+  skipButton: {
+    alignSelf: 'center',
+    marginTop: 20,
+    padding: 10,
+  },
+  skipButtonText: {
+    color: '#666',
+    fontWeight: '600',
+    fontSize: 16,
+    textDecorationLine: 'underline',
   }
 });

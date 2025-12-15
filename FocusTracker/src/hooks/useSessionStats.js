@@ -24,7 +24,6 @@ export const useSessionStats = () => {
   const loadSessions = useCallback(async () => {
     setLoading(true);
     try {
-      // Tüm sorguları paralel çalıştır (Performans için önemli)
       const [totalRes, todayRes, categoryRes, weeklyRawRes] = await Promise.all([
         fetchTotalStats(),
         fetchTodayStats(),
@@ -32,7 +31,6 @@ export const useSessionStats = () => {
         fetchLast7DaysStats()
       ]);
 
-      // 1. Genel İstatistikleri Ayarla
       const avgDur = totalRes.totalSessions > 0 
         ? totalRes.totalDuration / totalRes.totalSessions 
         : 0;
@@ -45,19 +43,18 @@ export const useSessionStats = () => {
         avgDuration: Math.ceil(avgDur / 60),
       });
 
-      // 2. En Verimli Kategori ve Pasta Grafik Verisi
       if (categoryRes.length > 0) {
         setMostProductive(categoryRes[0].name);
         
-        const colors = [
-          "#e74c3c", "#f39c12", "#2ecc71", "#3498db", 
-          "#9b59b6", "#1abc9c", "#e67e22"
-        ];
+        // Silinen kategoriler için kullanılacak Gri Renk
+        const DELETED_CATEGORY_COLOR = "#bdc3c7"; 
 
         setPieData(categoryRes.map((item, index) => ({
           name: item.name,
-          population: item.totalDuration, // ✅ Yeni (Saniye - Daha hassas yüzde hesaplar)
-          color: colors[index % colors.length],
+          population: item.totalDuration,
+          // ✨ DÜZELTME: Veritabanından renk geliyorsa (mevcut kategori) onu kullan, 
+          // gelmiyorsa (silinmiş kategori) gri yap.
+          color: item.color || DELETED_CATEGORY_COLOR, 
           legendFontColor: "#555",
           legendFontSize: 13,
         })));
@@ -66,8 +63,7 @@ export const useSessionStats = () => {
         setPieData([]);
       }
 
-      // 3. Son 7 Gün Verisi (Bar Chart)
-      // Veritabanından gelen ham veriyi günlere dağıtıyoruz
+      // Son 7 Gün Verisi (Bar Chart)
       const last7Days = [];
       const today = new Date();
       
@@ -75,8 +71,8 @@ export const useSessionStats = () => {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
         last7Days.push({
-          label: d.getDate().toString(), // Ayın günü (Örn: 27)
-          fullDate: d.toDateString(),    // Eşleştirme için tam tarih
+          label: d.getDate().toString(),
+          fullDate: d.toDateString(),
           duration: 0
         });
       }
@@ -92,7 +88,7 @@ export const useSessionStats = () => {
       setBarData({
         labels: last7Days.map(d => d.label),
         datasets: [{
-          data: last7Days.map(d => Math.ceil(d.duration)),//yuvarladık
+          data: last7Days.map(d => Math.ceil(d.duration)),
         }],
       });
 

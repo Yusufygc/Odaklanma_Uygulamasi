@@ -13,16 +13,16 @@ export const useCategories = () => {
       setCategories(data);
       return data;
     } catch (error) {
-      NotificationService.showError('Kategoriler yüklenemedi');
       return [];
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const addNewCategory = useCallback(async (name) => {
+  // ✨ GÜNCELLENDİ: color parametresi
+  const addNewCategory = useCallback(async (name, color) => {
     try {
-      await CategoryService.create(name);
+      await CategoryService.create(name, color);
       await loadCategories();
       NotificationService.showSuccess('Kategori eklendi');
       return true;
@@ -32,17 +32,10 @@ export const useCategories = () => {
     }
   }, [loadCategories]);
 
-  // ✨ GÜNCELLENDİ: Artık eski ismi (oldName) de alıyor
-  // Ancak db.js'deki updateCategoryInDB fonksiyonumuz şu an ID üzerinden eski ismi
-  // kendisi bulduğu için (SELECT ile) buraya oldName parametresini eklemek ZORUNLU DEĞİL.
-  // Yine de UI tarafında veya ileride lazım olabilir diye standart yapıyı koruyalım.
-  // Şimdilik sadece ID ve yeni isim ile çalışması yeterli, çünkü DB katmanımız akıllı.
-  
-  const updateCategory = useCallback(async (id, name) => {
+  // ✨ GÜNCELLENDİ: color parametresi
+  const updateCategory = useCallback(async (id, name, color) => {
     try {
-      // Servis katmanı üzerinden DB'ye gidiyor
-      // DB katmanı ID'den eski ismi bulup sessions tablosunu güncelliyor
-      await CategoryService.update(id, name);
+      await CategoryService.update(id, name, color);
       await loadCategories();
       NotificationService.showSuccess('Kategori güncellendi');
       return true;
@@ -52,24 +45,20 @@ export const useCategories = () => {
     }
   }, [loadCategories]);
 
-  // 🛠️ DÜZELTME: Silme Fonksiyonu
   const removeCategory = useCallback(async (id, name) => {
-    // 1. Kontrol: En az 1 kategori kalmalı
-    if (categories.length <= 1) { // Eğer 1 veya daha az varsa silme
+    if (categories.length <= 1) {
       NotificationService.showError('En az bir kategori kalmalı!');
       return false;
     }
 
-    // 2. Onay Penceresi ve İşlem
     return new Promise((resolve) => {
       NotificationService.showConfirmation(
         'Kategori Sil',
         `"${name}" kategorisini silmek istediğine emin misin?`,
         async () => {
           try {
-            console.log(`🗑️ Siliniyor: ID=${id}, Name=${name}`); // Log ekledik
             await CategoryService.remove(id);
-            await loadCategories(); // Listeyi yenile
+            await loadCategories();
             resolve(true);
           } catch (error) {
             console.error("❌ Silme Hatası:", error);
@@ -77,7 +66,7 @@ export const useCategories = () => {
             resolve(false);
           }
         },
-        () => resolve(false) // İptal edilirse
+        () => resolve(false)
       );
     });
   }, [categories, loadCategories]);

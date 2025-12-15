@@ -1,6 +1,3 @@
-// ==========================================
-// components/category/CategoryManagementModal.js
-// ==========================================
 import React, { useState, useEffect } from 'react';
 import {
   Modal,
@@ -15,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IconButton } from '../common/IconButton';
+import { ColorPicker } from '../common/ColorPicker'; // ✨ Yeni import
 import { useTheme } from '../../context/ThemeContext';
 
 export const CategoryManagementModal = ({
@@ -22,46 +20,44 @@ export const CategoryManagementModal = ({
   categories,
   onClose,
   onAdd,
-  onUpdate, // Güncelleme fonksiyonu
-  onDelete, // Silme fonksiyonu
+  onUpdate,
+  onDelete,
 }) => {
   const { themeColors } = useTheme();
   const [inputValue, setInputValue] = useState('');
+  const [selectedColor, setSelectedColor] = useState('#95a5a6'); // Varsayılan renk
   const [editingId, setEditingId] = useState(null);
 
-  // Sadece ekleme modu mu?
   const isAddOnly = !onUpdate && !onDelete;
 
   useEffect(() => {
     if (!visible) {
       setInputValue('');
       setEditingId(null);
+      setSelectedColor('#95a5a6'); // Sıfırla
     }
   }, [visible]);
 
-  // 🛠️ DÜZELTME: Düzenleme ve Ekleme mantığı kesin olarak ayrıldı
   const handleSubmit = async () => {
     if (inputValue.trim()) {
       let success = false;
       
       if (editingId) {
-        // --- DÜZENLEME MODU ---
-        // Eğer düzenleme modundaysak SADECE onUpdate'i dene.
-        // Asla onAdd bloğuna düşmemeli.
         if (onUpdate) {
-          success = await onUpdate(editingId, inputValue.trim());
+          // ✨ Rengi de gönderiyoruz
+          success = await onUpdate(editingId, inputValue.trim(), selectedColor);
         }
       } else {
-        // --- EKLEME MODU ---
-        // Sadece düzenleme modu değilse ekleme yap
         if (onAdd) {
-          success = await onAdd(inputValue.trim());
+          // ✨ Rengi de gönderiyoruz
+          success = await onAdd(inputValue.trim(), selectedColor);
         }
       }
 
       if (success) {
         setInputValue('');
         setEditingId(null);
+        setSelectedColor('#95a5a6');
       }
     }
   };
@@ -69,17 +65,20 @@ export const CategoryManagementModal = ({
   const startEditing = (category) => {
     setInputValue(category.name);
     setEditingId(category.id);
+    setSelectedColor(category.color || '#95a5a6'); // Mevcut rengi yükle
   };
 
   const cancelEditing = () => {
     setInputValue('');
     setEditingId(null);
+    setSelectedColor('#95a5a6');
   };
 
   const renderCategoryItem = ({ item }) => (
     <View style={[styles.listItem, { backgroundColor: themeColors.card, borderColor: themeColors.border }]}>
       <View style={styles.listItemLeft}>
-        <Ionicons name="pricetag" size={18} color={themeColors.primary} />
+        {/* ✨ İkon rengi artık kategorinin rengi */}
+        <Ionicons name="pricetag" size={18} color={item.color || themeColors.primary} />
         <Text style={[styles.listItemText, { color: themeColors.text }]}>{item.name}</Text>
       </View>
       
@@ -132,32 +131,41 @@ export const CategoryManagementModal = ({
               <IconButton icon="close-circle" size={28} color={themeColors.textLight} onPress={onClose} />
             </View>
 
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={[
-                  styles.input, 
-                  { 
-                    backgroundColor: themeColors.card, 
-                    color: themeColors.text,
-                    borderColor: editingId ? themeColors.primary : themeColors.border 
-                  }
-                ]}
-                placeholder={editingId ? "Kategori adını düzenle..." : "Yeni kategori adı..."}
-                placeholderTextColor={themeColors.textLight}
-                value={inputValue}
-                onChangeText={setInputValue}
-                maxLength={30}
-                onSubmitEditing={handleSubmit} // Klavyeden "Enter"a basınca tetikler
-              />
-              
-              {editingId ? (
-                <View style={styles.editActions}>
-                  <IconButton icon="close" size={24} color={themeColors.error} onPress={cancelEditing} />
-                  <IconButton icon="checkmark" size={24} color={themeColors.success} onPress={handleSubmit} />
+            <View style={styles.formContainer}>
+                {/* ✨ Renk Seçici Eklendi */}
+                <Text style={[styles.label, { color: themeColors.textLight }]}>Renk Seç:</Text>
+                <ColorPicker 
+                    selectedColor={selectedColor} 
+                    onSelectColor={setSelectedColor} 
+                />
+
+                <View style={styles.inputContainer}>
+                <TextInput
+                    style={[
+                    styles.input, 
+                    { 
+                        backgroundColor: themeColors.card, 
+                        color: themeColors.text,
+                        borderColor: editingId ? selectedColor : themeColors.border 
+                    }
+                    ]}
+                    placeholder={editingId ? "Kategori adı..." : "Yeni kategori adı..."}
+                    placeholderTextColor={themeColors.textLight}
+                    value={inputValue}
+                    onChangeText={setInputValue}
+                    maxLength={30}
+                    onSubmitEditing={handleSubmit}
+                />
+                
+                {editingId ? (
+                    <View style={styles.editActions}>
+                    <IconButton icon="close" size={24} color={themeColors.error} onPress={cancelEditing} />
+                    <IconButton icon="checkmark" size={24} color={themeColors.success} onPress={handleSubmit} />
+                    </View>
+                ) : (
+                    <IconButton icon="add-circle" size={44} color={selectedColor || themeColors.success} onPress={handleSubmit} style={styles.addButton} />
+                )}
                 </View>
-              ) : (
-                <IconButton icon="add-circle" size={44} color={themeColors.success} onPress={handleSubmit} style={styles.addButton} />
-              )}
             </View>
 
             <FlatList
@@ -176,9 +184,11 @@ export const CategoryManagementModal = ({
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'flex-end' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  content: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%', elevation: 10 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  content: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '85%', elevation: 10 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   title: { fontSize: 20, fontWeight: 'bold' },
+  formContainer: { marginBottom: 10 },
+  label: { fontSize: 12, marginBottom: 8, marginLeft: 4, fontWeight: '600' },
   inputContainer: { flexDirection: 'row', marginBottom: 20, gap: 10, alignItems: 'center' },
   input: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, fontSize: 16 },
   addButton: { margin: 0, padding: 0 },
